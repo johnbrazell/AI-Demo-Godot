@@ -1,0 +1,55 @@
+[gd_scene load_steps=9 format=3 uid="uid://bi76kso0jp5mr"]
+
+[ext_resource type="PackedScene" uid="uid://bggkh34hhqunr" path="res://Assets/Level Blocks/blue/platform_6x6x1_blue.gltf" id="1_8o3kp"]
+[ext_resource type="PackedScene" uid="uid://hgp0bmo32trv" path="res://Assets/Level Blocks/blue/barrier_1x1x4_blue.gltf" id="2_8o3kp"]
+[ext_resource type="PackedScene" uid="uid://0kjqj4w8hstq" path="res://Scenes/player.tscn" id="3_o8d2y"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_egh0b"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_pwfse"]
+sky_material = SubResource("ProceduralSkyMaterial_egh0b")
+
+[sub_resource type="Environment" id="Environment_kvye0"]
+background_mode = 2
+sky = SubResource("Sky_pwfse")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0ng7q"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_eevdi"]
+size = Vector3(1, 4.00433, 1)
+
+[node name="Main3D" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_kvye0")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+transform = Transform3D(21, 0, 0, 0, 3.5, 0, 0, 0, 21, 0, -1.79895, 0)
+shape = SubResource("BoxShape3D_0ng7q")
+debug_color = Color(0.00392157, 0.52549, 0.901961, 1)
+
+[node name="platform_6x6x1_blue2" parent="StaticBody3D" instance=ExtResource("1_8o3kp")]
+transform = Transform3D(3.5, 0, 0, 0, 3.5, 0, 0, 0, 3.5, 0, -3.5, 0)
+
+[node name="StaticBody3D2" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.00217, 0)
+shape = SubResource("BoxShape3D_eevdi")
+debug_color = Color(0.00392157, 0.52549, 0.901961, 1)
+
+[node name="barrier_1x1x4_blue2" parent="StaticBody3D2" instance=ExtResource("2_8o3kp")]
+
+[node name="Player" parent="." instance=ExtResource("3_o8d2y")]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -9.564)

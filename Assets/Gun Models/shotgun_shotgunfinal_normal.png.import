@@ -1,0 +1,39 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://chsnj8n2kuq7o"
+path.s3tc="res://.godot/imported/shotgun_shotgunfinal_normal.png-d4074d03ccf3e58167c27207a5c8d41d.s3tc.ctex"
+path.etc2="res://.godot/imported/shotgun_shotgunfinal_normal.png-d4074d03ccf3e58167c27207a5c8d41d.etc2.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "e620a64dfbad34a4f3db6c559888b82d"
+}
+
+[deps]
+
+source_file="res://Assets/Gun Models/shotgun_shotgunfinal_normal.png"
+dest_files=["res://.godot/imported/shotgun_shotgunfinal_normal.png-d4074d03ccf3e58167c27207a5c8d41d.s3tc.ctex", "res://.godot/imported/shotgun_shotgunfinal_normal.png-d4074d03ccf3e58167c27207a5c8d41d.etc2.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://Assets/GLB/shotgun_shotgunfinal_normal.png"
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

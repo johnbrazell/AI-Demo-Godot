@@ -1,0 +1,199 @@
+using Godot;
+using System;
+using System.Diagnostics;
+
+public partial class Player : CharacterBody3D
+{
+	[Export] public float Speed = 5.0f;
+	[Export] public float JumpVelocity = 4.5f;
+	[Export] public AnimationPlayer animationPlayer;
+	[Export] public AnimationTree animationTree;
+	[Export] public float YawSensitivity = 0.1f;
+	[Export] public float PitchSensitivity = 0.1f;
+	[Export] public float MaxPitch = 85f;
+	[Export] public float MinPitch = -85f;
+	[Export] public Node3D cameraOrbit;
+
+	private bool isJumping = false;
+	private float yaw = 0f;
+	private float pitch = 0f;
+	private Node3D PCamera;
+	private RayCast3D rayCast;
+
+	private float sprintBlend = 0;
+	private	float shootBlend = 0;
+	private	float jumpStartBlend = 0;
+	private	float jumpBlend = 0;
+	private	float jumpLandBlend = 0;
+	private float blendSpeed = 15f;
+	private enum CurrentAnim
+	{
+		PistolIdleA,
+		WalkA,
+		SprintA,
+	}
+	
+	private CurrentAnim currentAnim = CurrentAnim.PistolIdleA;
+
+	private MeshInstance3D debugLineMesh;
+	private ImmediateMesh rayMesh;
+
+
+	public override void _Ready()
+	{
+		Input.MouseMode = Input.MouseModeEnum.Captured;
+		animationPlayer = GetNode<AnimationPlayer>("AnimationPlayer");
+		animationTree = GetNode<AnimationTree>("AnimationTree");
+		PCamera = GetNode<Node3D>("%PhantomCamera3D");
+		cameraOrbit = GetNode<Node3D>("CameraOrbit");
+		rayCast = GetNode<Node3D>("%pistol").GetNode<RayCast3D>("RayCast3D");
+
+		debugLineMesh = new MeshInstance3D();
+		rayMesh = new ImmediateMesh();
+		
+		debugLineMesh.Mesh = rayMesh;
+		debugLineMesh.MaterialOverride = new StandardMaterial3D
+		{
+			AlbedoColor = new Color(0, 1, 0),
+			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+		};
+
+		AddChild(debugLineMesh);
+	}
+
+	public override void _PhysicsProcess(double delta)
+	{
+		Vector3 velocity = Velocity;
+
+		if (!IsOnFloor())
+		{
+			velocity += GetGravity() * (float)delta;
+		}
+
+		if (Input.IsActionJustPressed("jump") && IsOnFloor())
+		{
+			velocity.Y = JumpVelocity;
+			animationTree.Set("parameters/jump/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+		}
+
+		Vector2 inputDir = Input.GetVector("moveRight", "moveLeft", "moveBackward", "moveForward");
+		Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
+
+		if (!direction.IsZeroApprox())
+		{
+			velocity.X = direction.X * Speed;
+			velocity.Z = direction.Z * Speed;
+
+			if (new Vector2(velocity.X, velocity.Z).Length() > 4f)
+				currentAnim = CurrentAnim.SprintA;
+			else
+				currentAnim = CurrentAnim.WalkA;
+		}
+		else
+		{
+			velocity.X = Mathf.MoveToward(Velocity.X, 0, Speed);
+			velocity.Z = Mathf.MoveToward(Velocity.Z, 0, Speed);
+			currentAnim = CurrentAnim.PistolIdleA;
+		}
+
+		Velocity = velocity;
+		MoveAndSlide();
+		HandleAnimations();
+	}
+
+
+	public void HandleAnimations()
+	{
+        switch (currentAnim)
+        {
+			case CurrentAnim.PistolIdleA:
+				animationTree.Set("parameters/Movement/transition_request", "Idle");
+				break;
+			case CurrentAnim.SprintA:
+				animationTree.Set("parameters/Movement/transition_request", "Sprint");
+				break;
+			case CurrentAnim.WalkA:
+				animationTree.Set("parameters/Movement/transition_request", "Walk");
+				break;
+			default:
+				animationTree.Set("parameters/Movement/transition_request", "Idle");
+				break;
+		}
+	}
+
+
+	public override void _Input(InputEvent @event)
+	{
+		if (@event is InputEventMouseMotion mouseMotion)
+		{
+			yaw -= mouseMotion.Relative.X * YawSensitivity;
+			pitch -= mouseMotion.Relative.Y * PitchSensitivity;
+
+			pitch = Mathf.Clamp(pitch, MinPitch, MaxPitch);
+			yaw = yaw % 360;
+
+			Vector3 cameraRotation = new Vector3(pitch, yaw + 180, 0);
+
+			PCamera.Call("set_third_person_rotation_degrees", cameraRotation);
+
+
+			float normalizedPitch = (pitch / MaxPitch); // now in range [-1, 1]
+			animationTree.Set("parameters/pitch/blend_amount", normalizedPitch * 0.65f);
+			animationTree.Set("parameters/pitch2/blend_amount", normalizedPitch * 0.65f);
+			RotationDegrees = new Vector3(0, yaw, 0); //need to rotate the upper body
+		}
+
+		if (@event is InputEventMouseButton mouseButtonEvent)
+		{
+			if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Left)
+			{
+				animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+				rayCast.TargetPosition = new Vector3(0, 0, 0);
+				Camera3D camera = GetViewport().GetCamera3D();
+ 	Vector3 origin = rayCast.GlobalPosition;
+	Vector3 direction = -rayCast.GlobalTransform.Basis.Z.Normalized(); // Forward
+
+	float rayLength = 10000f;
+	Vector3 end = origin + direction * rayLength;
+
+	// Draw the ray using ImmediateMesh
+	rayMesh.ClearSurfaces();
+	rayMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
+
+	rayMesh.SurfaceAddVertex(origin);
+	rayMesh.SurfaceAddVertex(end);
+
+	rayMesh.SurfaceEnd();
+
+	// Optional: perform the actual raycast
+	var spaceState = GetWorld3D().DirectSpaceState;
+	var query = PhysicsRayQueryParameters3D.Create(origin, end);
+	var result = spaceState.IntersectRay(query);
+
+	if (result.Count > 0)
+	{
+		GD.Print("Ray hit: ", result["position"]);
+	}
+			}
+
+			if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Right)
+			{
+				cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0.75f);
+				Speed = 2f;
+				PCamera.GetNode<Camera3D>("Camera3D").Fov = 45f;
+			}
+			else if (mouseButtonEvent.IsReleased() && mouseButtonEvent.ButtonIndex == MouseButton.Right)
+			{
+				cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+				Speed = 5f;
+				PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
+			}
+		}
+
+		if (@event is InputEventKey keyEvent)
+		{
+			if (keyEvent.IsActionPressed("ReloadLevel"))
+				GetTree().ReloadCurrentScene();
+		}
+	}
+}
