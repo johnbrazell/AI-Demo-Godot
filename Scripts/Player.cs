@@ -10,7 +10,7 @@ public partial class Player : CharacterBody3D
 	[Export] public bool isDead = false;
 	[Export] public Timer despawnTimer;
 	[Export] public float Speed = 5.0f;
-	[Export] public float JumpVelocity = 4.5f;
+	[Export] public float JumpVelocity = 5f;
 	[Export] public AnimationPlayer animationPlayer;
 	[Export] public AnimationTree animationTree;
 	[Export] public float YawSensitivity = 0.1f;
@@ -129,13 +129,13 @@ public partial class Player : CharacterBody3D
 			{
 				currentAnim = CurrentAnim.FallA;
 				animationTree.Set("parameters/AimFall/blend_amount", 0);
-				GD.Print(currentAnim.ToString());
-				GD.Print(animationTree.Get("parameters/AimFall/blend_amount"));
 			}
 		}
 		else
 		{
 			airTime = 0;
+			if (currentAnim == CurrentAnim.FallA)
+			    currentAnim = CurrentAnim.PistolIdleA;
 			animationTree.Set("parameters/AimFall/blend_amount", 1);
 		}
 
@@ -315,7 +315,6 @@ public partial class Player : CharacterBody3D
 				CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
 				if (collider != null && collider.IsInGroup("Enemy"))
 				{
-					GD.Print("Hit: " + collider.Name);
 					collider.Call("TakeDamage", 14.3f);
 				}
 			}
