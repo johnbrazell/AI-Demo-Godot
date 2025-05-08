@@ -5,6 +5,10 @@ using System.Reflection.Metadata;
 
 public partial class Player : CharacterBody3D
 {
+	[Export] public float MaxHealth = 100f;
+	[Export] public float currentHealth = 100f;
+	[Export] public bool isDead = false;
+	[Export] public Timer despawnTimer;
 	[Export] public float Speed = 5.0f;
 	[Export] public float JumpVelocity = 4.5f;
 	[Export] public AnimationPlayer animationPlayer;
@@ -38,7 +42,8 @@ public partial class Player : CharacterBody3D
 		PistolIdleA,
 		WalkA,
 		SprintA,
-		FallA
+		FallA,
+		DieA
 	}
 
 	private CurrentAnim currentAnim = CurrentAnim.PistolIdleA;
@@ -59,6 +64,7 @@ public partial class Player : CharacterBody3D
 		cameraOrbit = GetNode<Node3D>("CameraOrbit");
 		collisionShape = GetNode<CollisionShape3D>("CollisionShape3D");
 		capsuleShape = collisionShape.Shape as CapsuleShape3D;
+		despawnTimer = GetNode<Timer>("DespawnTimer");
 		rayCast = GetNode<Node3D>("%pistol").GetNode<RayCast3D>("RayCast3D");
 		debugNode = GetNode<Node3D>("%WorldDebugLines");
 
@@ -96,6 +102,14 @@ public partial class Player : CharacterBody3D
 
 	public override void _PhysicsProcess(double delta)
 	{
+		if (isDead)
+		{
+			if (despawnTimer.IsStopped()) QueueFree();
+			Velocity = Vector3.Zero;
+			HandleAnimations();
+			MoveAndSlide();
+			return;
+		}
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
 		velocity = HandleJump(velocity, delta);
@@ -135,6 +149,8 @@ public partial class Player : CharacterBody3D
 
 	public Vector3 HandleMovement(Vector3 velocity)
 	{
+		if (isDead || currentAnim == CurrentAnim.DieA)
+			return velocity;
 		if (currentAnim == CurrentAnim.FallA)
 			return velocity;
 
@@ -164,6 +180,13 @@ public partial class Player : CharacterBody3D
 
 	public void HandleAnimations()
 	{
+		if (isDead)
+		{
+			animationTree.Set("parameters/AimFall/blend_amount", 0);
+			animationTree.Set("parameters/Movement/transition_request", "Die");
+			return;
+		}
+
 		switch (currentAnim)
 		{
 			case CurrentAnim.PistolIdleA:
@@ -178,6 +201,10 @@ public partial class Player : CharacterBody3D
 			case CurrentAnim.FallA:
 				animationTree.Set("parameters/Movement/transition_request", "Fall");
 				break;
+			case CurrentAnim.DieA:
+				animationTree.Set("parameters/AimFall/blend_amount", 0);
+				animationTree.Set("parameters/Movement/transition_request", "Die");
+				break;
 			default:
 				animationTree.Set("parameters/Movement/transition_request", "Idle");
 				break;
@@ -186,8 +213,10 @@ public partial class Player : CharacterBody3D
 		if (isCrouching)
 		{
 			Speed = 2f;
-			capsuleShape.Height = 1.25f;
-			
+			capsuleShape.Height = 1.35f;
+			collisionShape.Position = new Vector3(0.1f, 0.5f, 0);
+			cameraOrbit.Position = new Vector3(-0.5f, 1.35f, 0.5f);
+
 			if (isMoving)
 			{
 				animationTree.Set("parameters/CrouchWalk/blend_amount", 1);
@@ -203,6 +232,8 @@ public partial class Player : CharacterBody3D
 		{
 			Speed = 5f;
 			capsuleShape.Height = 2f;
+			collisionShape.Position = new Vector3(0, 0.875f, 0);
+			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 			animationTree.Set("parameters/CrouchWalk/blend_amount", 0);
 			animationTree.Set("parameters/CrouchIdle/blend_amount", 0);
 		}
@@ -210,6 +241,7 @@ public partial class Player : CharacterBody3D
 
 	public override void _Input(InputEvent @event)
 	{
+		if (isDead) return;
 		if (@event is InputEventMouseMotion mouseMotion)
 		{
 			HandleMouseMovement(mouseMotion);
@@ -268,21 +300,29 @@ public partial class Player : CharacterBody3D
 			var query = PhysicsRayQueryParameters3D.Create(start, end);
 			var result = spaceState.IntersectRay(query);
 
-			if (result.Count > 0)
-			{
-				end = (Vector3)result["position"];
-				hitMarkerMesh.GlobalTransform = new Transform3D(Basis.Identity, end);
-				hitMarkerMesh.Visible = true;
-			}
-			else
-				hitMarkerMesh.Visible = false;
-
 			// Draw using ImmediateMesh
 			rayMesh.ClearSurfaces();
 			rayMesh.SurfaceBegin(Mesh.PrimitiveType.Lines);
 			rayMesh.SurfaceAddVertex(start);
 			rayMesh.SurfaceAddVertex(end);
 			rayMesh.SurfaceEnd();
+
+			if (result.Count > 0)
+			{
+				end = (Vector3)result["position"];
+				hitMarkerMesh.GlobalTransform = new Transform3D(Basis.Identity, end);
+				hitMarkerMesh.Visible = true;
+				CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
+				if (collider != null && collider.IsInGroup("Enemy"))
+				{
+					GD.Print("Hit: " + collider.Name);
+					collider.Call("TakeDamage", 14.3f);
+				}
+			}
+			else
+				hitMarkerMesh.Visible = false;
+
+			
 		}
 
 		if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Right)
@@ -298,13 +338,30 @@ public partial class Player : CharacterBody3D
 			PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
 		}
 	}
-	
+
 	public void HandleCrouching(InputEventKey keyEvent)
 	{
 		if (keyEvent.IsActionPressed("crouch"))
 			isCrouching = true;
 		else if (keyEvent.IsActionReleased("crouch"))
 			isCrouching = false;
+	}
+
+	public void TakeDamage(float damage)
+	{
+		currentHealth -= damage;
+		GD.Print("Current Health: " + currentHealth);
+		if (currentHealth <= 0 && !isDead)
+		{
+			isDead = true;
+			currentHealth = 0;
+			animationTree.Set("parameters/AimFall/blend_amount", 0);
+			currentAnim = CurrentAnim.DieA;
+			capsuleShape.Height = 0.01f;
+			capsuleShape.Radius = 0.01f;
+			rayMesh.ClearSurfaces();
+			despawnTimer.Start();
+		}
 	}
 	
 }

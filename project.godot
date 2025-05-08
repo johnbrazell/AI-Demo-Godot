@@ -21,10 +21,6 @@ PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_came
 Shaker="*res://addons/shaker/src/Shaker.gd"
 Panku="*res://addons/panku_console/console.tscn"
 
-[debug]
-
-settings/stdout/print_fps=true
-
 [dialogic]
 
 directories/dch_directory={}
@@ -64,6 +60,10 @@ enabled=PackedStringArray("res://addons/globalize-plugins/plugin.cfg", "res://ad
 [filesystem]
 
 import/blender/enabled=false
+
+[global_group]
+
+Player=""
 
 [input]
 
