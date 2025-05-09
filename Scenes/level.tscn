@@ -385,7 +385,7 @@ shape = SubResource("BoxShape3D_wqkje")
 transform = Transform3D(1, 0, 0, 0, 1.6, 0, 0, 0, 1, 0, -1.92725, 0)
 
 [node name="middleWall" type="StaticBody3D" parent="RedSide"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.07022, 4.75533, 20.873)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.07022, 4.75533, 19.2842)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RedSide/middleWall"]
 transform = Transform3D(3, 0, 0, 0, 4, 0, 0, 0, 1, 0, 2, 0)

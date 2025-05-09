@@ -288,7 +288,7 @@ public partial class Player : CharacterBody3D
 
 			// Get the camera and direction from its forward (center of screen)
 			Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
-			Vector3 start = rayCast.GlobalPosition;
+			Vector3 start = camera.GlobalPosition;
 			Vector3 direction = -camera.GlobalTransform.Basis.Z;// Forward direction
 
 			// Cast the ray
