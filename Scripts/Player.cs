@@ -1,6 +1,8 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection.Metadata;
 
 public partial class Player : CharacterBody3D
@@ -53,7 +55,18 @@ public partial class Player : CharacterBody3D
 	private MeshInstance3D debugLineMesh;
 	private ImmediateMesh rayMesh;
 	private MeshInstance3D hitMarkerMesh;
-
+	private RandomNumberGenerator rng = new();
+	private enum CurrentTeam
+	{
+		Blue,
+		Red
+	}
+	private CurrentTeam currentTeam = CurrentTeam.Blue;
+	private PackedScene playerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
+	private NavigationRegion3D navMap;
+	private bool isDespawning = false;
+	private bool isAiming = false;
+	private Camera3D camera;
 
 	public override void _Ready()
 	{
@@ -63,14 +76,17 @@ public partial class Player : CharacterBody3D
 		animationTree = GetNode<AnimationTree>("AnimationTree");
 		PCamera = GetNode<Node3D>("%PhantomCamera3D");
 		cameraOrbit = GetNode<Node3D>("CameraOrbit");
+		camera = PCamera.GetNode<Camera3D>("Camera3D");
 		eyes = GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
 		collisionShape = GetNode<CollisionShape3D>("CollisionShape3D");
 		capsuleShape = collisionShape.Shape as CapsuleShape3D;
 		despawnTimer = GetNode<Timer>("DespawnTimer");
 		rayCast = GetNode<Node3D>("%pistol").GetNode<RayCast3D>("RayCast3D");
-		debugNode = GetNode<Node3D>("%WorldDebugLines");
+		debugNode = GetParent<Node3D>().GetNode<Node3D>("%WorldDebugLines");
+		navMap = GetParent<Node3D>().GetNode<NavigationRegion3D>("%NavigationRegion3D");
 
 		AddVisibleRaycast();
+		ResetCollision();
 	}
 
 	public void AddVisibleRaycast()
@@ -102,11 +118,25 @@ public partial class Player : CharacterBody3D
 		debugNode.AddChild(hitMarkerMesh);
 	}
 
+	public void ResetCollision()
+	{
+		Speed = 5f;
+		capsuleShape.Height = 2f;
+		collisionShape.Position = new Vector3(0, 0.875f, 0);
+		cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+		eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
+		isAiming = false;
+		PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
+		camera = PCamera.GetNode<Camera3D>("Camera3D");
+		camera.Fov = 70f;
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
-		if (isDead)
+
+		if (isDead || isDespawning)
 		{
-			if (despawnTimer.IsStopped()) QueueFree();
+			if (despawnTimer.IsStopped()) Respawn();
 			Velocity = Vector3.Zero;
 			HandleAnimations();
 			MoveAndSlide();
@@ -118,6 +148,7 @@ public partial class Player : CharacterBody3D
 		Velocity = velocity;
 		MoveAndSlide();
 		HandleAnimations();
+		UpdateAimState();
 	}
 
 	public Vector3 HandleJump(Vector3 velocity, double delta)
@@ -137,7 +168,7 @@ public partial class Player : CharacterBody3D
 		{
 			airTime = 0;
 			if (currentAnim == CurrentAnim.FallA)
-			    currentAnim = CurrentAnim.PistolIdleA;
+				currentAnim = CurrentAnim.PistolIdleA;
 			animationTree.Set("parameters/AimFall/blend_amount", 1);
 		}
 
@@ -233,11 +264,7 @@ public partial class Player : CharacterBody3D
 		}
 		else
 		{
-			Speed = 5f;
-			capsuleShape.Height = 2f;
-			collisionShape.Position = new Vector3(0, 0.875f, 0);
-			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
-			eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
+			ResetCollision();
 			animationTree.Set("parameters/CrouchWalk/blend_amount", 0);
 			animationTree.Set("parameters/CrouchIdle/blend_amount", 0);
 		}
@@ -283,6 +310,27 @@ public partial class Player : CharacterBody3D
 		RotationDegrees = new Vector3(0, yaw, 0);
 	}
 
+	private void UpdateAimState()
+	{
+		if (Input.IsMouseButtonPressed(MouseButton.Right))
+		{
+			if (!isAiming)
+			{
+				isAiming = true;
+				cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0.75f);
+				Speed = 2f;
+				camera.Fov = 45f;
+			}
+		}
+		else if (isAiming)
+		{
+			isAiming = false;
+			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+			Speed = 5f;
+			camera.Fov = 70f;
+		}
+	}
+
 	public void HandleMouseButtons(InputEventMouseButton mouseButtonEvent)
 	{
 		if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Left)
@@ -291,7 +339,7 @@ public partial class Player : CharacterBody3D
 
 
 			// Get the camera and direction from its forward (center of screen)
-			Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
+
 			Vector3 start = camera.GlobalPosition;
 			Vector3 direction = -camera.GlobalTransform.Basis.Z;// Forward direction
 
@@ -317,7 +365,18 @@ public partial class Player : CharacterBody3D
 				hitMarkerMesh.GlobalTransform = new Transform3D(Basis.Identity, end);
 				hitMarkerMesh.Visible = true;
 				Node collider = result["collider"].As<Node>();
-				if (collider is CharacterBody3D character && character.IsInGroup("Enemy"))
+
+				string enemyTeam;
+				if (currentTeam == CurrentTeam.Blue)
+				{
+					enemyTeam = CurrentTeam.Red.ToString();
+				}
+				else
+				{
+					enemyTeam = CurrentTeam.Blue.ToString();
+				}
+
+				if (collider is CharacterBody3D character && character.IsInGroup(enemyTeam))
 				{
 					collider.Call("TakeDamage", 14.3f);
 				}
@@ -325,20 +384,22 @@ public partial class Player : CharacterBody3D
 			else
 				hitMarkerMesh.Visible = false;
 
-			
+
 		}
 
 		if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Right)
 		{
+			isAiming = true;
 			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0.75f);
 			Speed = 2f;
-			PCamera.GetNode<Camera3D>("Camera3D").Fov = 45f;
+			camera.Fov = 45f;
 		}
 		else if (mouseButtonEvent.IsReleased() && mouseButtonEvent.ButtonIndex == MouseButton.Right)
 		{
+			isAiming = false;
 			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 			Speed = 5f;
-			PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
+			camera.Fov = 70f;
 		}
 	}
 
@@ -353,13 +414,14 @@ public partial class Player : CharacterBody3D
 	public void TakeDamage(float damage)
 	{
 		currentHealth -= damage;
-		
+
 		if (currentHealth > 100)
 			currentHealth = MaxHealth;
 		GD.Print("Current Health: " + Name + currentHealth);
 		if (currentHealth <= 0 && !isDead)
 		{
 			isDead = true;
+			isDespawning = true;
 			currentHealth = 0;
 			animationTree.Set("parameters/AimFall/blend_amount", 0);
 			currentAnim = CurrentAnim.DieA;
@@ -368,6 +430,62 @@ public partial class Player : CharacterBody3D
 			rayMesh.ClearSurfaces();
 			despawnTimer.Start();
 		}
+	}
+
+	public async void Respawn()
+	{
+		int targetIndex = (int)rng.RandfRange(0, 5);
+		List<Node3D> teamSpawns = new List<Node3D>();
+
+		if (currentTeam == CurrentTeam.Blue)
+		{
+			teamSpawns.Clear();
+			foreach (var spawn in navMap.GetNode<Node3D>("Level").GetNode<Node3D>("%BlueSpawns").GetChildren())
+			{
+				teamSpawns.Add(spawn as Node3D);
+			}
+		}
+		else
+		{
+			teamSpawns.Clear();
+			foreach (var spawn in navMap.GetNode<Node3D>("Level").GetNode<Node3D>("%RedSpawns").GetChildren())
+			{
+				teamSpawns.Add(spawn as Node3D);
+			}
+		}
+
+		if (targetIndex >= teamSpawns.Count)
+			targetIndex = 0; // fallback
+
+		var spawnPoint = teamSpawns[targetIndex];
+		var spawnPoint3D = spawnPoint as Node3D;
+		var spawningPlayer = playerScene.Instantiate<Player>();
+
+		GetParent<Node3D>().AddChild(spawningPlayer);
+		spawningPlayer.GlobalPosition = spawnPoint3D.GlobalPosition + (Vector3.Up - new Vector3(0, 0.75f, 0));
+		spawningPlayer.isDead = false;
+		spawningPlayer.AddToGroup("Blue");
+
+		// After spawning player in player Respawn()
+		await ToSignal(GetTree(), "process_frame"); // optional safety
+
+		foreach (Enemy enemy in GetTree().GetNodesInGroup("Red"))
+		{
+			if (enemy != null && GodotObject.IsInstanceValid(enemy))
+				enemy.SetTargetPlayer(spawningPlayer);
+		}
+
+		Input.MouseMode = Input.MouseModeEnum.Captured;
+		GetViewport().SetInputAsHandled();
+		spawningPlayer.ReacquireInput();
+
+		QueueFree();
+	}
+
+	public void ReacquireInput()
+	{
+		Input.MouseMode = Input.MouseModeEnum.Captured;
+		GetViewport().SetInputAsHandled();
 	}
 	
 }

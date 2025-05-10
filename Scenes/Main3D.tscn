@@ -1,9 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://bi76kso0jp5mr"]
+[gd_scene load_steps=7 format=3 uid="uid://bi76kso0jp5mr"]
 
 [ext_resource type="PackedScene" uid="uid://bbob6808wowou" path="res://Scenes/level.tscn" id="2_7w5y7"]
-[ext_resource type="PackedScene" uid="uid://cv5b5iri5euxm" path="res://Scenes/crosshair.tscn" id="2_o8d2y"]
 [ext_resource type="PackedScene" uid="uid://0kjqj4w8hstq" path="res://Scenes/player.tscn" id="3_o8d2y"]
-[ext_resource type="PackedScene" uid="uid://t5l373v67ct3" path="res://Scenes/enemy.tscn" id="4_fnw00"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_egh0b"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -45,8 +43,3 @@ navigation_mesh = SubResource("NavigationMesh_o8d2y")
 [node name="Player" parent="." instance=ExtResource("3_o8d2y")]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.75696, 0.490674, 4.46359)
-
-[node name="crosshair" parent="Player" instance=ExtResource("2_o8d2y")]
-
-[node name="Enemy" parent="." instance=ExtResource("4_fnw00")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.02132, 0.490675, 7.70084)

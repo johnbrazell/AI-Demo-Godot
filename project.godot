@@ -63,8 +63,9 @@ import/blender/enabled=false
 
 [global_group]
 
-Player=""
+Red=""
 Enemy=""
+Player=""
 
 [input]
 

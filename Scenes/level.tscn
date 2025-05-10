@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://bbob6808wowou"]
+[gd_scene load_steps=40 format=3 uid="uid://bbob6808wowou"]
 
 [ext_resource type="PackedScene" uid="uid://bggkh34hhqunr" path="res://Assets/Level Blocks/blue/platform_6x6x1_blue.gltf" id="1_tumq0"]
 [ext_resource type="PackedScene" uid="uid://lrsigf3k0xm0" path="res://Assets/Level Blocks/blue/platform_slope_6x6x4_blue.gltf" id="2_k5f4k"]
@@ -44,10 +44,15 @@ size = Vector3(1.11078, 1.19104, 2.26794)
 [sub_resource type="BoxShape3D" id="BoxShape3D_0f350"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_81xng"]
+size = Vector3(1.00112, 0.999878, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wqkje"]
+size = Vector3(1.01465, 1, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_oqgf2"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0cmrb"]
+size = Vector3(2.06781, 1, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_pa6b8"]
 size = Vector3(6.07758, 0.699219, 6.21426)
@@ -203,7 +208,7 @@ debug_color = Color(0.00392157, 0.52549, 0.901961, 1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22.5, 0, 11)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/bridge1"]
-transform = Transform3D(4, 0, 0, 0, 0.5, 0, 0, 0, 16, 0, 0.192919, 7.38813)
+transform = Transform3D(4, 0, 0, 0, 0.5, 0, 0, 0, 16, 0, 0.124753, 7.38813)
 shape = SubResource("BoxShape3D_ha31o")
 
 [node name="platform_6x2x1_blue2" parent="Floor/bridge1" instance=ExtResource("3_oqgf2")]
@@ -213,7 +218,7 @@ transform = Transform3D(-1.20206e-07, 0, 2, 0, 0.5, 0, -2.75, 0, -8.74228e-08, 0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.64717, 0, 10.9224)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/bridge2"]
-transform = Transform3D(4, 0, 0, 0, 0.5, 0, 0, 0, 16, 0, 0.192919, 7.38813)
+transform = Transform3D(4, 0, 0, 0, 0.5, 0, 0, 0, 16, 0, 0.0925891, 7.38813)
 shape = SubResource("BoxShape3D_ha31o")
 
 [node name="platform_6x2x1_blue2" parent="Floor/bridge2" instance=ExtResource("3_oqgf2")]
@@ -357,7 +362,7 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 25.822
 transform = Transform3D(1, 0, 0, 0, 2, 0, 0, 0, 7, 18.2693, 0.810681, -3.04099)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RedSide/LongUpper1"]
-transform = Transform3D(42, 0, 0, 0, 42, 0, 0, 0, 42, 0.228357, -12.1687, -3.07608)
+transform = Transform3D(42, 0, 0, 0, 42, 0, 0, 0, 42, 0.251909, -12.1713, -3.07608)
 shape = SubResource("BoxShape3D_81xng")
 
 [node name="ramp1" type="StaticBody3D" parent="RedSide"]
@@ -367,7 +372,7 @@ transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.1488
 transform = Transform3D(-6.55671e-08, 0, 1.5, 0, 1.5, 0, -1.5, 0, -6.55671e-08, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RedSide/ramp1"]
-transform = Transform3D(8.98794, 4.38371, 0, -4.38371, 8.98794, 0, 0, 0, 10, -2.13367, -0.684742, -0.482281)
+transform = Transform3D(8.98794, 4.38371, 0, -4.38371, 8.98794, 0, 0, 0, 10, -2.06784, -0.685618, -0.482281)
 shape = SubResource("BoxShape3D_wqkje")
 
 [node name="ramp2" type="StaticBody3D" parent="RedSide"]
@@ -384,7 +389,7 @@ transform = Transform3D(-6.64413e-08, 0, 1.52, 0, 1.52, 0, -1.52, 0, -6.64413e-0
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 1.543, 1.75, 35.187)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RedSide/tower"]
-transform = Transform3D(6, 0, 0, 0, 6, 0, 0, 0, 6, 0, 1.47758, 0)
+transform = Transform3D(6, 0, 0, 0, 6, 0, 0, 0, 6, 0.0270057, 1.46142, 0.0108833)
 shape = SubResource("BoxShape3D_wqkje")
 
 [node name="platform_6x6x4_blue2" parent="RedSide/tower" instance=ExtResource("3_6phgx")]
@@ -544,7 +549,7 @@ transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -19.31
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.3568, -1.12901, 2.6425)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="BlueSide/ramp2"]
-transform = Transform3D(13.1067, 1.36197, 0, -6.6782, 2.67302, 0, 0, 0, 4, -0.363455, 3.44408, 0.111304)
+transform = Transform3D(13.1067, 1.36197, 0, -6.6782, 2.67302, 0, 0, 0, 4, -0.363455, 3.37907, 0.111304)
 shape = SubResource("BoxShape3D_wqkje")
 
 [node name="platform_slope_2x6x4_blue2" parent="BlueSide/ramp2" instance=ExtResource("4_81xng")]
@@ -553,6 +558,10 @@ transform = Transform3D(-9.31053e-08, 0, 2.13, 0, 2.13, 0, -2.13, 0, -9.31053e-0
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="BlueSide/ramp2"]
 transform = Transform3D(0.213136, 0.40085, -0.891007, 0.418302, 0.786712, 0.453991, 0.882947, -0.469471, -3.89471e-08, 5.70718, 1.25408, -2.09403)
 shape = SubResource("BoxShape3D_oqgf2")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="BlueSide/ramp2"]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, -3.33981, 3.10838, 0.796715)
+shape = SubResource("BoxShape3D_0cmrb")
 
 [node name="LongUpper1" type="StaticBody3D" parent="BlueSide"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.753, -2.00699, 16.5381)
@@ -852,7 +861,7 @@ shape = SubResource("BoxShape3D_c7le1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22095, 0.294427)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Bridges/bottomtotop1"]
-transform = Transform3D(0.898794, -0.438371, 0, 0.438371, 0.898794, 0, 0, 0, 1, 4.37043, 2.34328, 0.00746155)
+transform = Transform3D(0.898794, -0.438371, 0, 0.438371, 0.898794, 0, 0, 0, 1, 4.37043, 2.2601, 0.00746155)
 shape = SubResource("BoxShape3D_2klc5")
 
 [node name="platform_4x2x1_blue2" parent="Bridges/bottomtotop1" instance=ExtResource("14_crh0w")]
@@ -862,7 +871,7 @@ transform = Transform3D(-1.12349, -0.219186, -1.50996e-07, -0.547964, 0.449397, 
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 2.48785, -1.37953, -7.65686)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Bridges/bottomtotop2"]
-transform = Transform3D(0.898794, -0.438371, 0, 0.438371, 0.898794, 0, 0, 0, 1, 4.73963, 2.67203, 1.34468)
+transform = Transform3D(0.898794, -0.438371, 0, 0.438371, 0.898794, 0, 0, 0, 1, 4.73963, 2.68612, 1.34468)
 shape = SubResource("BoxShape3D_2klc5")
 
 [node name="platform_4x2x1_blue2" parent="Bridges/bottomtotop2" instance=ExtResource("14_crh0w")]
@@ -1550,6 +1559,7 @@ shape = SubResource("BoxShape3D_3a44l")
 [node name="barrier_4x1x2_blue2" parent="walls/Wall66" instance=ExtResource("6_8c0lf")]
 
 [node name="BlueSpawns" type="Node3D" parent="."]
+unique_name_in_owner = true
 
 [node name="cone_green2" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.0826, 8.34108, -5.44085)
@@ -1570,6 +1580,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.317, 3.75144, -4.58671)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.89849, 0.433885, -6.06918)
 
 [node name="RedSpawns" type="Node3D" parent="."]
+unique_name_in_owner = true
 
 [node name="cone_red2" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.3247, 0.433885, 42.8496)
@@ -1589,33 +1600,35 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.87654, 4.8693, 45.919)
 [node name="cone_red7" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.80788, 4.8693, 33.1309)
 
-[node name="heart_yellow2" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+[node name="healthpacks" type="Node3D" parent="."]
+
+[node name="heart_yellow2" parent="healthpacks" instance=ExtResource("19_pnhnk")]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -10.505, 6, 18.195)
 script = ExtResource("20_24uko")
 
-[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow2"]
+[node name="Area3D" type="Area3D" parent="healthpacks/heart_yellow2"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow2/Area3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="healthpacks/heart_yellow2/Area3D"]
 shape = SubResource("SphereShape3D_3a44l")
 
-[node name="heart_yellow3" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+[node name="heart_yellow3" parent="healthpacks" instance=ExtResource("19_pnhnk")]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 1.73256, 7.68047, 35.1368)
 script = ExtResource("20_24uko")
 
-[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow3"]
+[node name="Area3D" type="Area3D" parent="healthpacks/heart_yellow3"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow3/Area3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="healthpacks/heart_yellow3/Area3D"]
 shape = SubResource("SphereShape3D_3a44l")
 
-[node name="heart_yellow4" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+[node name="heart_yellow4" parent="healthpacks" instance=ExtResource("19_pnhnk")]
 transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -20.5488, 10.7954, -5.68549)
 script = ExtResource("20_24uko")
 
-[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow4"]
+[node name="Area3D" type="Area3D" parent="healthpacks/heart_yellow4"]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow4/Area3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="healthpacks/heart_yellow4/Area3D"]
 shape = SubResource("SphereShape3D_3a44l")
 
-[connection signal="body_entered" from="RedSpawns/heart_yellow2/Area3D" to="RedSpawns/heart_yellow2" method="OnBodyEntered"]
-[connection signal="body_entered" from="RedSpawns/heart_yellow3/Area3D" to="RedSpawns/heart_yellow3" method="OnBodyEntered"]
-[connection signal="body_entered" from="RedSpawns/heart_yellow4/Area3D" to="RedSpawns/heart_yellow4" method="OnBodyEntered"]
+[connection signal="body_entered" from="healthpacks/heart_yellow2/Area3D" to="healthpacks/heart_yellow2" method="OnBodyEntered"]
+[connection signal="body_entered" from="healthpacks/heart_yellow3/Area3D" to="healthpacks/heart_yellow3" method="OnBodyEntered"]
+[connection signal="body_entered" from="healthpacks/heart_yellow4/Area3D" to="healthpacks/heart_yellow4" method="OnBodyEntered"]
