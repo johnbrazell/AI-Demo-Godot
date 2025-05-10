@@ -9,6 +9,7 @@ public partial class Enemy : CharacterBody3D
 	[Export] public float currentHealth = 100f;
 	[Export] public bool isDead = false;
 	[Export] public Timer despawnTimer;
+	public Timer shootTimer;
 	[Export] public float Speed = 5.0f;
 	[Export] public float JumpVelocity = 5f;
 	[Export] public AnimationPlayer animationPlayer;
@@ -62,8 +63,10 @@ public partial class Enemy : CharacterBody3D
 	private Node3D playerEyes;
 	private NavigationAgent3D navAgent;
 	private NavigationRegion3D navMap;
-	private Vector3 patrolTarget = Vector3.Zero;
-
+	private Vector3 patrolPoint;
+	private RandomNumberGenerator rng = new();
+	private bool initializedPatrol = false;
+	bool test = true;
 
 	public override void _Ready()
 	{
@@ -81,14 +84,22 @@ public partial class Enemy : CharacterBody3D
 		collisionShape.Shape = capsuleShape;
 		despawnTimer = GetNode<Timer>("DespawnTimer");
 		despawnTimer.Timeout += () => QueueFree();
+		shootTimer = GetNode<Timer>("ShootTimer");
+		shootTimer.Timeout += Shoot;
 		rayCast = GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<BoneAttachment3D>("RightHandBoneAttachment3D").GetNode<Node3D>("pistol").GetNode<RayCast3D>("RayCast3D");
 		debugNode = GetNode<Node3D>("%WorldDebugLines");
 		navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
-		navMap = GetTree().Root.GetNode<NavigationRegion3D>("NavigationRegion3D");
+		navMap = GetNode<NavigationRegion3D>("%NavigationRegion3D");
 		player = GetNode<Player>("%Player");
 		playerEyes = player.GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
 		navAgent.TargetPosition = player.GlobalPosition;
 
+		Timer initDelayTimer = new Timer();
+		initDelayTimer.WaitTime = 0.1f;
+		initDelayTimer.OneShot = true;
+		initDelayTimer.Timeout += InitializePatrol;
+		AddChild(initDelayTimer);
+		initDelayTimer.Start();
 		AddVisibleRaycast();
 		ResetCollision();
 	}
@@ -115,7 +126,7 @@ public partial class Enemy : CharacterBody3D
 		};
 		StandardMaterial3D markerMat = new StandardMaterial3D
 		{
-			AlbedoColor = new Color(0, 0, 1),
+			AlbedoColor = new Color(0, 1, 0),
 			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
 		};
 		hitMarkerMeshRed.MaterialOverride = markerMat;
@@ -129,17 +140,38 @@ public partial class Enemy : CharacterBody3D
 		collisionShape.Position = new Vector3(0, 0.875f, 0);
 	}
 
+	private void InitializePatrol()
+	{
+		if (navMap != null)
+		{
+			patrolPoint = GetRandomPoint(GlobalPosition, 60);
+			navAgent.TargetPosition = patrolPoint;
+		}
+		else
+		{
+			GD.PushWarning("NavigationRegion3D still not ready.");
+		}
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
+		
+		if (test)
+		{
+			ToggleShoot();
+			test = false;
+		}
+
 		if (isDead)
 		{
 			Velocity = Vector3.Zero;
 			MoveAndSlide();
 			return;
 		}
+
 		CanSeePlayerThisFrame = CanSeePlayer();
 		if (CanSeePlayerThisFrame)
-			LookAt(player.GlobalPosition, Vector3.Up);
+			UpdateLook(playerEyes.GlobalPosition);
 
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
@@ -147,6 +179,37 @@ public partial class Enemy : CharacterBody3D
 		Velocity = velocity;
 		MoveAndSlide();
 		HandleAnimations();
+	}
+
+	private void UpdateLook(Vector3 targetGPos)
+	{
+		Vector3 toTarget = targetGPos - eyes.GlobalPosition;
+		float verticalDistance = toTarget.Y;
+		float horizontalDistance = new Vector2(toTarget.X, toTarget.Z).Length();
+
+		if (horizontalDistance == 0)
+			return;
+
+		float pitchRadians = Mathf.Atan2(verticalDistance, horizontalDistance);
+		float pitchDegrees = Mathf.RadToDeg(pitchRadians);
+
+		// Clamp the angle between MinPitch and MaxPitch
+		pitchDegrees = Mathf.Clamp(pitchDegrees, MinPitch, MaxPitch);
+
+		// Convert to Blend3 range: -1 (down) to 0 (neutral) to 1 (up)
+		float normalizedBlend = Mathf.Remap(pitchDegrees, MinPitch, MaxPitch, -1f, 1f);
+
+		animationTree.Set("parameters/pitch/blend_amount", normalizedBlend);
+
+		// Calculate yaw angle to look at the player
+		float targetYaw = Mathf.Atan2(toTarget.X, toTarget.Z);
+		float currentYaw = Rotation.Y;
+
+		// Smoothly interpolate yaw
+		float newYaw = Mathf.LerpAngle(currentYaw, targetYaw, 0.1f); // Adjust 0.1f for turn speed
+
+		// Apply rotation (only yaw changes)
+		Rotation = new Vector3(Rotation.X, newYaw, Rotation.Z);
 	}
 
 	public bool CanSeePlayer()
@@ -165,18 +228,17 @@ public partial class Enemy : CharacterBody3D
 		var result = spaceState.IntersectRay(query);
 
 		// Draw using ImmediateMesh
-		rayMeshRed.ClearSurfaces();
-		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		rayMeshRed.SurfaceAddVertex(start);
-		rayMeshRed.SurfaceAddVertex(end);
-		rayMeshRed.SurfaceEnd();
+		// rayMeshRed.ClearSurfaces();
+		// rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		// rayMeshRed.SurfaceAddVertex(start);
+		// rayMeshRed.SurfaceAddVertex(end);
+		// rayMeshRed.SurfaceEnd();
 
 		if (result.Count > 0)
 		{
-			end = (Vector3)result["position"];
-			hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
-			hitMarkerMeshRed.Visible = true;
-			//CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
+			// end = (Vector3)result["position"];
+			// hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
+			// hitMarkerMeshRed.Visible = true;
 			if (result["collider"].Obj is Node3D collider && collider.IsInGroup("Player"))
 				return true;
 			return false;
@@ -233,11 +295,12 @@ public partial class Enemy : CharacterBody3D
 			navAgent.TargetPosition = player.GlobalPosition;
 		else
 		{
-			if ((GlobalPosition - patrolTarget).Length() < 1f || navAgent.IsNavigationFinished())
+			if ((GlobalPosition - patrolPoint).Length() < 1f || navAgent.IsNavigationFinished())
 			{
-				patrolTarget = GetRandomPoint(GlobalPosition, 60);
+				patrolPoint = GetRandomPoint(GlobalPosition, 60);
 			}
-			navAgent.TargetPosition = patrolTarget;
+			navAgent.TargetPosition = patrolPoint;
+			UpdateLook(patrolPoint + Vector3.Up);
 		}
 
 		Vector3 direction = (navAgent.GetNextPathPosition() - GlobalPosition).Normalized();
@@ -267,11 +330,6 @@ public partial class Enemy : CharacterBody3D
 
 	public Vector3 GetRandomPoint(Vector3 center, float radius)
 	{
-		if (navMap == null)
-	{
-		GD.PushError("navRegion is null! Assign it in the Inspector.");
-		return center;
-	}
 		for (int i = 0; i < 20; i++)
 		{
 			Vector3 randomOffset = new Vector3(
@@ -328,6 +386,7 @@ public partial class Enemy : CharacterBody3D
 			capsuleShape.Height = 1.35f;
 			collisionShape.Position = new Vector3(0.1f, 0.5f, 0);
 			cameraOrbit.Position = new Vector3(-0.5f, 1.35f, 0.5f);
+			eyes.Position = new Vector3(0.087f, 0.93f, 0.261f);
 
 			if (isMoving)
 			{
@@ -346,6 +405,7 @@ public partial class Enemy : CharacterBody3D
 			capsuleShape.Height = 1.864f;
 			collisionShape.Position = new Vector3(0, 0.875f, 0);
 			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+			eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
 			animationTree.Set("parameters/CrouchWalk/blend_amount", 0);
 			animationTree.Set("parameters/CrouchIdle/blend_amount", 0);
 		}
@@ -364,45 +424,60 @@ public partial class Enemy : CharacterBody3D
 		isShooting = !isShooting;
 
 		if (isShooting)
+			ResetShootTimer();
+		else
+			shootTimer.Stop();
+	}
+
+	public void ResetShootTimer()
+	{
+		float delay = rng.RandfRange(0.075f, 0.75f);
+		shootTimer.WaitTime = delay;
+		shootTimer.Start();
+	}
+
+	public void Shoot()
+	{
+		if (!isShooting) return;
+		GD.Print("shoot");
+		animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+
+		// Get the camera and direction from its forward (center of screen)
+		//Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
+		Vector3 start = rayCast.GlobalPosition;
+		Vector3 direction =  (playerEyes.GlobalPosition - start).Normalized();//-camera.GlobalTransform.Basis.Z;// Forward direction
+
+		// Cast the ray
+		float rayLength = 1000f;
+		Vector3 end = start + direction * rayLength;
+
+		// Optional: Physics raycast
+		var spaceState = GetWorld3D().DirectSpaceState;
+		var query = PhysicsRayQueryParameters3D.Create(start, end);
+		var result = spaceState.IntersectRay(query);
+
+		// Draw using ImmediateMesh
+		rayMeshRed.ClearSurfaces();
+		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		rayMeshRed.SurfaceAddVertex(start);
+		rayMeshRed.SurfaceAddVertex(end);
+		rayMeshRed.SurfaceEnd();
+
+		if (result.Count > 0)
 		{
-			animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
-
-
-			// Get the camera and direction from its forward (center of screen)
-			//Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
-			Vector3 start = camera.GlobalPosition;
-			Vector3 direction = -camera.GlobalTransform.Basis.Z;// Forward direction
-
-			// Cast the ray
-			float rayLength = 1000f;
-			Vector3 end = start + direction * rayLength;
-
-			// Optional: Physics raycast
-			var spaceState = GetWorld3D().DirectSpaceState;
-			var query = PhysicsRayQueryParameters3D.Create(start, end);
-			var result = spaceState.IntersectRay(query);
-
-			// Draw using ImmediateMesh
-			rayMeshRed.ClearSurfaces();
-			rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
-			rayMeshRed.SurfaceAddVertex(start);
-			rayMeshRed.SurfaceAddVertex(end);
-			rayMeshRed.SurfaceEnd();
-
-			if (result.Count > 0)
+			end = (Vector3)result["position"];
+			hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
+			hitMarkerMeshRed.Visible = true;
+			CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
+			if (collider != null && collider.IsInGroup("Player"))
 			{
-				end = (Vector3)result["position"];
-				hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
-				hitMarkerMeshRed.Visible = true;
-				CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
-				if (collider != null && collider.IsInGroup("Player"))
-				{
-					collider.Call("TakeDamage", 14.3f);
-				}
+				collider.Call("TakeDamage", 14.3f);
 			}
-			else
-				hitMarkerMeshRed.Visible = false;
 		}
+		else
+			hitMarkerMeshRed.Visible = false;
+
+		ResetShootTimer();
 	}
 
 	public void ToggleAim()

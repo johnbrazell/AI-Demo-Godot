@@ -28,6 +28,7 @@ public partial class Player : CharacterBody3D
 	private float pitch = 0f;
 	private Node3D PCamera;
 	private RayCast3D rayCast;
+	private Node3D eyes;
 
 	private float sprintBlend = 0;
 	private float shootBlend = 0;
@@ -62,6 +63,7 @@ public partial class Player : CharacterBody3D
 		animationTree = GetNode<AnimationTree>("AnimationTree");
 		PCamera = GetNode<Node3D>("%PhantomCamera3D");
 		cameraOrbit = GetNode<Node3D>("CameraOrbit");
+		eyes = GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
 		collisionShape = GetNode<CollisionShape3D>("CollisionShape3D");
 		capsuleShape = collisionShape.Shape as CapsuleShape3D;
 		despawnTimer = GetNode<Timer>("DespawnTimer");
@@ -216,6 +218,7 @@ public partial class Player : CharacterBody3D
 			capsuleShape.Height = 1.35f;
 			collisionShape.Position = new Vector3(0.1f, 0.5f, 0);
 			cameraOrbit.Position = new Vector3(-0.5f, 1.35f, 0.5f);
+			eyes.Position = new Vector3(0.087f, 0.93f, 0.261f);
 
 			if (isMoving)
 			{
@@ -234,6 +237,7 @@ public partial class Player : CharacterBody3D
 			capsuleShape.Height = 2f;
 			collisionShape.Position = new Vector3(0, 0.875f, 0);
 			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+			eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
 			animationTree.Set("parameters/CrouchWalk/blend_amount", 0);
 			animationTree.Set("parameters/CrouchIdle/blend_amount", 0);
 		}

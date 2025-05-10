@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://bbob6808wowou" path="res://Scenes/level.tscn" id="2_7w5y7"]
 [ext_resource type="PackedScene" uid="uid://cv5b5iri5euxm" path="res://Scenes/crosshair.tscn" id="2_o8d2y"]
 [ext_resource type="PackedScene" uid="uid://0kjqj4w8hstq" path="res://Scenes/player.tscn" id="3_o8d2y"]
-[ext_resource type="PackedScene" uid="uid://t5l373v67ct3" path="res://Scenes/enemyAI.tscn" id="4_fnw00"]
+[ext_resource type="PackedScene" uid="uid://t5l373v67ct3" path="res://Scenes/enemy.tscn" id="4_fnw00"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_egh0b"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -37,6 +37,7 @@ shadow_enabled = true
 unique_name_in_owner = true
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+unique_name_in_owner = true
 navigation_mesh = SubResource("NavigationMesh_o8d2y")
 
 [node name="Level" parent="NavigationRegion3D" instance=ExtResource("2_7w5y7")]
