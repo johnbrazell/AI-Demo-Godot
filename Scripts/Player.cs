@@ -316,8 +316,8 @@ public partial class Player : CharacterBody3D
 				end = (Vector3)result["position"];
 				hitMarkerMesh.GlobalTransform = new Transform3D(Basis.Identity, end);
 				hitMarkerMesh.Visible = true;
-				CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
-				if (collider != null && collider.IsInGroup("Enemy"))
+				Node collider = result["collider"].As<Node>();
+				if (collider is CharacterBody3D character && character.IsInGroup("Enemy"))
 				{
 					collider.Call("TakeDamage", 14.3f);
 				}
@@ -353,7 +353,10 @@ public partial class Player : CharacterBody3D
 	public void TakeDamage(float damage)
 	{
 		currentHealth -= damage;
-		GD.Print("Current Health: " + currentHealth);
+		
+		if (currentHealth > 100)
+			currentHealth = MaxHealth;
+		GD.Print("Current Health: " + Name + currentHealth);
 		if (currentHealth <= 0 && !isDead)
 		{
 			isDead = true;

@@ -66,7 +66,6 @@ public partial class Enemy : CharacterBody3D
 	private Vector3 patrolPoint;
 	private RandomNumberGenerator rng = new();
 	private bool initializedPatrol = false;
-	bool test = true;
 
 	public override void _Ready()
 	{
@@ -94,12 +93,7 @@ public partial class Enemy : CharacterBody3D
 		playerEyes = player.GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
 		navAgent.TargetPosition = player.GlobalPosition;
 
-		Timer initDelayTimer = new Timer();
-		initDelayTimer.WaitTime = 0.1f;
-		initDelayTimer.OneShot = true;
-		initDelayTimer.Timeout += InitializePatrol;
-		AddChild(initDelayTimer);
-		initDelayTimer.Start();
+		DelayForPatrolInit();
 		AddVisibleRaycast();
 		ResetCollision();
 	}
@@ -140,6 +134,16 @@ public partial class Enemy : CharacterBody3D
 		collisionShape.Position = new Vector3(0, 0.875f, 0);
 	}
 
+	private void DelayForPatrolInit()
+	{
+		Timer initDelayTimer = new Timer();
+		initDelayTimer.WaitTime = 0.1f;
+		initDelayTimer.OneShot = true;
+		initDelayTimer.Timeout += InitializePatrol;
+		AddChild(initDelayTimer);
+		initDelayTimer.Start();
+	}
+
 	private void InitializePatrol()
 	{
 		if (navMap != null)
@@ -155,13 +159,6 @@ public partial class Enemy : CharacterBody3D
 
 	public override void _PhysicsProcess(double delta)
 	{
-		
-		if (test)
-		{
-			ToggleShoot();
-			test = false;
-		}
-
 		if (isDead)
 		{
 			Velocity = Vector3.Zero;
@@ -439,7 +436,7 @@ public partial class Enemy : CharacterBody3D
 	public void Shoot()
 	{
 		if (!isShooting) return;
-		GD.Print("shoot");
+
 		animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
 
 		// Get the camera and direction from its forward (center of screen)
@@ -468,8 +465,8 @@ public partial class Enemy : CharacterBody3D
 			end = (Vector3)result["position"];
 			hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
 			hitMarkerMeshRed.Visible = true;
-			CharacterBody3D collider = result["collider"].As<CharacterBody3D>();
-			if (collider != null && collider.IsInGroup("Player"))
+			Node collider = result["collider"].As<Node>();
+			if (collider is CharacterBody3D character && character.IsInGroup("Player"))
 			{
 				collider.Call("TakeDamage", 14.3f);
 			}
@@ -506,6 +503,9 @@ public partial class Enemy : CharacterBody3D
 	{
 		currentHealth -= damage;
 
+		if (currentHealth > 100)
+			currentHealth = MaxHealth;
+		GD.Print("Current Health: " + Name + currentHealth);
 		if (currentHealth <= 0 && !isDead)
 		{
 			isDead = true;
@@ -517,8 +517,9 @@ public partial class Enemy : CharacterBody3D
 			capsuleShape.Height = 0.01f;
 			capsuleShape.Radius = 0.01f;
 			rayMeshRed.ClearSurfaces();
+			isShooting = false;
 
-			despawnTimer.Start();			
+			despawnTimer.Start();
 		}
 	}
 	

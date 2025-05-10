@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://bbob6808wowou"]
+[gd_scene load_steps=39 format=3 uid="uid://bbob6808wowou"]
 
 [ext_resource type="PackedScene" uid="uid://bggkh34hhqunr" path="res://Assets/Level Blocks/blue/platform_6x6x1_blue.gltf" id="1_tumq0"]
 [ext_resource type="PackedScene" uid="uid://lrsigf3k0xm0" path="res://Assets/Level Blocks/blue/platform_slope_6x6x4_blue.gltf" id="2_k5f4k"]
@@ -16,6 +16,10 @@
 [ext_resource type="PackedScene" uid="uid://cbq6mek3smt1f" path="res://Assets/Level Blocks/blue/platform_4x2x1_blue.gltf" id="14_crh0w"]
 [ext_resource type="PackedScene" uid="uid://c02j3m2gwoxq" path="res://Assets/Level Blocks/blue/platform_2x2x1_blue.gltf" id="15_c7le1"]
 [ext_resource type="PackedScene" uid="uid://bb3h2qjohk1wu" path="res://Assets/Level Blocks/blue/platform_2x2x4_blue.gltf" id="16_2klc5"]
+[ext_resource type="PackedScene" uid="uid://dbbn21p4wo7ig" path="res://Assets/Level Blocks/green/cone_green.gltf" id="17_3a44l"]
+[ext_resource type="PackedScene" uid="uid://daua35a8l3y6u" path="res://Assets/Level Blocks/red/cone_red.gltf" id="18_0cmrb"]
+[ext_resource type="PackedScene" uid="uid://dsp7bq3g0qs53" path="res://Assets/Level Blocks/yellow/heart_yellow.gltf" id="19_pnhnk"]
+[ext_resource type="Script" uid="uid://dopdissy87rkc" path="res://Scripts/Health.cs" id="20_24uko"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_6phgx"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -65,6 +69,8 @@ size = Vector3(7.97412, 0.507324, 2.00854)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_3a44l"]
 size = Vector3(4.01097, 2.0022, 1.00934)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_3a44l"]
 
 [node name="Level" type="Node3D"]
 
@@ -1542,3 +1548,74 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.00261688, 0.999105, -0.004
 shape = SubResource("BoxShape3D_3a44l")
 
 [node name="barrier_4x1x2_blue2" parent="walls/Wall66" instance=ExtResource("6_8c0lf")]
+
+[node name="BlueSpawns" type="Node3D" parent="."]
+
+[node name="cone_green2" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.0826, 8.34108, -5.44085)
+
+[node name="cone_green3" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.9696, 6.89321, 2.98565)
+
+[node name="cone_green5" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.292, -2.60216, 18.3261)
+
+[node name="cone_green6" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.2719, 0.433886, 5.9929)
+
+[node name="cone_green7" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.317, 3.75144, -4.58671)
+
+[node name="cone_green8" parent="BlueSpawns" instance=ExtResource("17_3a44l")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.89849, 0.433885, -6.06918)
+
+[node name="RedSpawns" type="Node3D" parent="."]
+
+[node name="cone_red2" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.3247, 0.433885, 42.8496)
+
+[node name="cone_red3" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.5632, 3.75144, 42.0122)
+
+[node name="cone_red4" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.11109, 0.433883, 34.8244)
+
+[node name="cone_red5" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.86104, 4.8693, 21.2971)
+
+[node name="cone_red6" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.87654, 4.8693, 45.919)
+
+[node name="cone_red7" parent="RedSpawns" instance=ExtResource("18_0cmrb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.80788, 4.8693, 33.1309)
+
+[node name="heart_yellow2" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -10.505, 6, 18.195)
+script = ExtResource("20_24uko")
+
+[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow2"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow2/Area3D"]
+shape = SubResource("SphereShape3D_3a44l")
+
+[node name="heart_yellow3" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 1.73256, 7.68047, 35.1368)
+script = ExtResource("20_24uko")
+
+[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow3"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow3/Area3D"]
+shape = SubResource("SphereShape3D_3a44l")
+
+[node name="heart_yellow4" parent="RedSpawns" instance=ExtResource("19_pnhnk")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, -20.5488, 10.7954, -5.68549)
+script = ExtResource("20_24uko")
+
+[node name="Area3D" type="Area3D" parent="RedSpawns/heart_yellow4"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RedSpawns/heart_yellow4/Area3D"]
+shape = SubResource("SphereShape3D_3a44l")
+
+[connection signal="body_entered" from="RedSpawns/heart_yellow2/Area3D" to="RedSpawns/heart_yellow2" method="OnBodyEntered"]
+[connection signal="body_entered" from="RedSpawns/heart_yellow3/Area3D" to="RedSpawns/heart_yellow3" method="OnBodyEntered"]
+[connection signal="body_entered" from="RedSpawns/heart_yellow4/Area3D" to="RedSpawns/heart_yellow4" method="OnBodyEntered"]
