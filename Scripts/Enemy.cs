@@ -71,11 +71,23 @@ public partial class Enemy : CharacterBody3D
 	private Node3D playerEyes;
 	private NavigationAgent3D navAgent;
 	private NavigationRegion3D navMap;
-	private Vector3 patrolPoint;
+	private bool navMapReady = false;
+	//private Vector3 patrolPoint;
 	private RandomNumberGenerator rng = new();
 	private bool initializedPatrol = false;
 	private bool isDespawning = false;
-	private bool test = true;
+	private AudioStreamPlayer3D audioStreamPlayer;
+	private Node3D teamSoundNode;
+	private Node3D EnemySoundNode;
+	private MeshInstance3D soundsPosMesh;
+	private Timer soundTimer;
+	private Vector3 closestSoundPos = Vector3.Zero;
+
+	private Vector3 lastCheckedPosition = Vector3.Zero;
+	private float stuckTimer = 0f;
+	private int stuckState = 0; // 0 = not stuck, 1 = jump attempted
+	private float stuckThreshold = 0.2f; // how little distance = stuck
+	private float stuckCooldown = 0.5f;
 
 	public override void _Ready()
 	{
@@ -99,11 +111,22 @@ public partial class Enemy : CharacterBody3D
 		debugNode = GetParent<Node3D>().GetNode<Node3D>("%WorldDebugLines");
 		navAgent = GetNode<NavigationAgent3D>("NavigationAgent3D");
 		navMap = GetParent<Node3D>().GetNode<NavigationRegion3D>("%NavigationRegion3D");
-		// player = GetParent<Node3D>().GetNode<Player>("%Player");
-		// playerEyes = player.GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
-		//navAgent.TargetPosition = player.GlobalPosition;
+		NavigationServer3D.MapChanged += (rid) => { navMapReady = true; };
+		audioStreamPlayer = GetNode<AudioStreamPlayer3D>("AudioStreamPlayer3D");
+		soundTimer = GetNode<Timer>("SoundTimer");
+		soundTimer.Timeout += () => RemoveSound();
 
-		DelayForPatrolInit();
+		if (currentTeam == CurrentTeam.Red)
+		{
+			teamSoundNode = debugNode.GetNode<Node3D>("RedSounds");
+			EnemySoundNode = debugNode.GetNode<Node3D>("BlueSounds");
+		}
+		else
+		{
+			teamSoundNode = debugNode.GetNode<Node3D>("BlueSounds");
+			EnemySoundNode = debugNode.GetNode<Node3D>("RedSounds");
+		}
+
 		AddVisibleRaycast();
 		ResetCollision();
 	}
@@ -135,6 +158,18 @@ public partial class Enemy : CharacterBody3D
 		};
 		hitMarkerMeshRed.MaterialOverride = markerMat;
 		debugNode.AddChild(hitMarkerMeshRed);
+
+		soundsPosMesh = new MeshInstance3D
+		{
+			Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(1, 0, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			},
+			Visible = true
+		};
+		teamSoundNode.AddChild(soundsPosMesh);
 	}
 
 	public void ResetCollision()
@@ -148,73 +183,100 @@ public partial class Enemy : CharacterBody3D
     	PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
 	}
 
-	private async void DelayForPatrolInit()
-	{
-		await ToSignal(GetTree(), "process_frame");
-		Timer initDelayTimer = new Timer();
-		initDelayTimer.WaitTime = 0.25f;
-		initDelayTimer.OneShot = true;
-		initDelayTimer.Timeout += InitializePatrol;
-		AddChild(initDelayTimer);
-		initDelayTimer.Start();
-
-		SetTargetPlayer();
-	}
-
-	public void SetTargetPlayer(Player newTarget = null)
+	public void SetTargetNavPos(Node3D newTarget = null)
 	{
 		if (newTarget != null)
 		{
-			player = newTarget;
+			navAgent.TargetPosition = newTarget.GlobalPosition;
+			return;
 		}
 		else
 		{
-			var players = GetTree().GetNodesInGroup("Blue");
-			if (players.Count > 0)
-				player = players[(int)rng.RandfRange(0, players.Count - 1)] as CharacterBody3D;
+			navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 60);
 		}
+		// {
+		// 	var players = GetTree().GetNodesInGroup("Blue");
+		// 	if (players.Count > 0)
+		// 		player = players[(int)rng.RandfRange(0, players.Count - 1)] as CharacterBody3D;
+		// }
 
-		if (player != null)
-		{
-			playerEyes = player.GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
-			if (navAgent != null && IsInsideTree())
-				navAgent.TargetPosition = player.GlobalPosition;
-		}
+			// if (player != null)
+			// {
+			// 	playerEyes = player.GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
+			// 	if (navAgent != null && IsInsideTree())
+			// 		navAgent.TargetPosition = player.GlobalPosition;
+			// }
 	}
 
-	private void InitializePatrol()
+	public void SetTargetNavPos(Vector3 newTarget)
 	{
-		if (navMap != null)
+		if (newTarget != Vector3.Zero)
+			navAgent.TargetPosition = newTarget;
+	}
+
+	public bool TargetPosReached()
+	{
+		if (navAgent != null)
 		{
-			patrolPoint = GetRandomPoint(GlobalPosition, 60);
-			navAgent.TargetPosition = patrolPoint;
+			Vector2 targetposV2 = new Vector2(navAgent.TargetPosition.X, navAgent.TargetPosition.Z);
+			Vector2 currentPosV2 = new Vector2(GlobalPosition.X, GlobalPosition.Z);
+			float distance = targetposV2.DistanceTo(currentPosV2);
+			GD.Print(distance);
+			if (distance <= 1.5f)
+				return true;
 		}
-		else
+		
+		return false;
+	}
+
+	public bool TargetPosReached(float offset)
+	{
+		if (navAgent != null)
 		{
-			GD.PushWarning("NavigationRegion3D still not ready.");
+			Vector2 targetposV2 = new Vector2(navAgent.TargetPosition.X, navAgent.TargetPosition.Z);
+			Vector2 currentPosV2 = new Vector2(GlobalPosition.X, GlobalPosition.Z);
+			float distance = targetposV2.DistanceTo(currentPosV2);
+			if (distance <= offset)
+				return true;
 		}
+		return false;
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
-		if (test)
-		{
-			ToggleShoot();
-			test = false;
-		}
-		if (isDespawning || !GodotObject.IsInstanceValid(playerEyes))
-		return;
+		// if (isDespawning || !GodotObject.IsInstanceValid(playerEyes))
+		// return;
 
 		if (isDead)
 		{
 			Velocity = Vector3.Zero;
+			Velocity += GetGravity() * (float)delta;
 			MoveAndSlide();
 			return;
 		}
 
-		CanSeePlayerThisFrame = CanSeePlayer();
-		if (CanSeePlayerThisFrame)
-			UpdateLook(playerEyes.GlobalPosition);
+		if (navMapReady && HeardSound())
+		{
+			Vector3 closestSoundPos = GetClosestSoundPos();
+			if (closestSoundPos != GlobalPosition)
+			{
+				SetTargetNavPos(closestSoundPos);
+				UpdateLook(closestSoundPos);
+			}
+			if (TargetPosReached())
+				RemoveFoundSound();
+		}
+
+		if (!TargetPosReached())
+		{
+			stuckTimer += (float)delta;
+			UpdateLook(navAgent.GetNextPathPosition() + Vector3.Up);
+			if (stuckTimer >= stuckCooldown && GlobalPosition.DistanceTo(lastCheckedPosition) <= stuckThreshold)
+				HandleStuck();
+		}
+		else
+			SetTargetNavPos();
+		
 
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
@@ -222,6 +284,27 @@ public partial class Enemy : CharacterBody3D
 		Velocity = velocity;
 		MoveAndSlide();
 		HandleAnimations();
+	}
+
+	public void HandleStuck()
+	{
+		if (stuckState == 0 && IsOnFloor())
+		{
+			Jump();
+			stuckState = 1;
+		}
+		else
+		{
+			Vector3 reroute = GetRandomPoint(navAgent.TargetPosition, 10);
+			if (reroute.IsFinite())
+				navAgent.TargetPosition = reroute;
+			else
+				navAgent.TargetPosition = GlobalPosition;
+			stuckState = 0;
+		}
+
+		lastCheckedPosition = GlobalPosition;
+		stuckTimer = 0f;
 	}
 
 	private void UpdateLook(Vector3 targetGPos)
@@ -305,6 +388,7 @@ public partial class Enemy : CharacterBody3D
 	public void Jump()
 	{
 		isJumping = !isJumping;
+		GD.Print("Jumping: " + isJumping);
 	}
 
 	public Vector3 HandleJump(Vector3 velocity, double delta)
@@ -332,8 +416,11 @@ public partial class Enemy : CharacterBody3D
 		}
 		else if (IsOnFloor())
 		{
+			airTime = 0;
+			isJumping = false;
 			velocity += GetGravity() * (float)delta;
 		}
+		velocity.Y = Mathf.Clamp(velocity.Y, -100f, JumpVelocity);
 		return velocity;
 	}
 
@@ -343,20 +430,8 @@ public partial class Enemy : CharacterBody3D
 			return velocity;
 		if (currentAnim == CurrentAnim.FallA)
 			return velocity;
-		if (navAgent == null || player == null)
+		if (navAgent == null)
 			return velocity;
-
-		if (CanSeePlayerThisFrame)
-			navAgent.TargetPosition = player.GlobalPosition;
-		else
-		{
-			if ((GlobalPosition - patrolPoint).Length() < 1f || navAgent.IsNavigationFinished())
-			{
-				patrolPoint = GetRandomPoint(GlobalPosition, 60);
-			}
-			navAgent.TargetPosition = patrolPoint;
-			UpdateLook(patrolPoint + Vector3.Up);
-		}
 
 		Vector3 direction = (navAgent.GetNextPathPosition() - GlobalPosition).Normalized();
 		Vector3 desiredVelocity = new Vector3(direction.X, Velocity.Y, direction.Z) * Speed;
@@ -385,6 +460,13 @@ public partial class Enemy : CharacterBody3D
 
 	public Vector3 GetRandomPoint(Vector3 center, float radius)
 	{
+		var navMapRid = navMap.GetNavigationMap();
+		if (NavigationServer3D.MapGetIterationId(navMapRid) == 0)
+		{
+			GD.Print("Navigation map not ready, skipping GetRandomPoint().");
+			return center;
+		}
+
 		for (int i = 0; i < 20; i++)
 		{
 			Vector3 randomOffset = new Vector3(
@@ -394,10 +476,10 @@ public partial class Enemy : CharacterBody3D
 				).Normalized() * (float)(GD.Randf() * radius);
 			Vector3 randomPoint = center + randomOffset;
 
-			var navMapRid = navMap.GetNavigationMap();
-			Vector3? closestPoint = NavigationServer3D.MapGetClosestPoint(navMapRid, randomPoint);
-			if (closestPoint != null)
-				return closestPoint.Value;
+			Vector3 closestPoint = center;
+			closestPoint = NavigationServer3D.MapGetClosestPoint(navMapRid, randomPoint);
+			if (closestPoint != center && closestPoint.Y <= 9f && closestPoint.IsFinite())
+				return closestPoint;
 		}
 		return center;
 	}
@@ -492,6 +574,7 @@ public partial class Enemy : CharacterBody3D
 		if (!isShooting || !GodotObject.IsInstanceValid(playerEyes))
 			return;
 
+		SpawnSound();
 		animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
 
 		// Get the camera and direction from its forward (center of screen)
@@ -541,6 +624,76 @@ public partial class Enemy : CharacterBody3D
 			hitMarkerMeshRed.Visible = false;
 
 		ResetShootTimer();
+	}
+
+	public void SpawnSound()
+	{
+		audioStreamPlayer.Play();
+		if (soundsPosMesh != null)
+		{
+			soundsPosMesh.Visible = false;
+		}
+		if (soundsPosMesh.GetParent() != teamSoundNode)
+		{
+			teamSoundNode.AddChild(soundsPosMesh);
+		}
+		soundsPosMesh.GlobalTransform = new Transform3D(Basis.Identity, rayCast.GlobalPosition);
+		soundsPosMesh.Visible = true;
+		soundTimer.Start();
+	}
+
+	public void RemoveSound()
+	{
+		if (soundsPosMesh != null && soundsPosMesh.GetParent() == teamSoundNode)
+		{
+			soundsPosMesh.Visible = false;
+			teamSoundNode.RemoveChild(soundsPosMesh);
+		}
+	}
+
+	public void RemoveFoundSound()
+	{
+		if (EnemySoundNode.GetChildCount() > 0)
+		{
+			foreach (Node3D sound in EnemySoundNode.GetChildren())
+			{
+				if (sound is MeshInstance3D soundMesh && sound.GlobalPosition == closestSoundPos)
+				{
+					sound.Visible = false;
+					EnemySoundNode.RemoveChild(sound);
+				}
+			}
+		}
+	}
+
+
+	public bool HeardSound()
+	{
+		if (EnemySoundNode.GetChildCount() > 0)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	public Vector3 GetClosestSoundPos()
+	{
+		closestSoundPos = GlobalPosition;
+		float closestDistance = 100f;
+
+		foreach (Node3D sound in EnemySoundNode.GetChildren())
+		{
+			if (sound is MeshInstance3D soundMesh)
+			{
+				float distance = GlobalPosition.DistanceTo(soundMesh.GlobalPosition);
+				if (distance < closestDistance)
+				{
+					closestDistance = distance;
+					closestSoundPos = soundMesh.GlobalPosition;
+				}
+			}
+		}
+		return closestSoundPos;
 	}
 
 	public void ToggleAim()
@@ -627,6 +780,8 @@ public partial class Enemy : CharacterBody3D
 		playerEyes = null;
 		isShooting = false;
 		shootTimer.Stop();
+		soundTimer.Stop();
+		RemoveSound();
 		QueueFree();
 
 	}

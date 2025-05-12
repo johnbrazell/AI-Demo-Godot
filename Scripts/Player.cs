@@ -55,6 +55,7 @@ public partial class Player : CharacterBody3D
 	private MeshInstance3D debugLineMesh;
 	private ImmediateMesh rayMesh;
 	private MeshInstance3D hitMarkerMesh;
+	private MeshInstance3D soundsPosMesh;
 	private RandomNumberGenerator rng = new();
 	private enum CurrentTeam
 	{
@@ -67,6 +68,9 @@ public partial class Player : CharacterBody3D
 	private bool isDespawning = false;
 	private bool isAiming = false;
 	private Camera3D camera;
+	private AudioStreamPlayer3D audioStreamPlayer;
+	private Timer soundTimer;
+	private Node3D soundNode;
 
 	public override void _Ready()
 	{
@@ -84,6 +88,13 @@ public partial class Player : CharacterBody3D
 		rayCast = GetNode<Node3D>("%pistol").GetNode<RayCast3D>("RayCast3D");
 		debugNode = GetParent<Node3D>().GetNode<Node3D>("%WorldDebugLines");
 		navMap = GetParent<Node3D>().GetNode<NavigationRegion3D>("%NavigationRegion3D");
+		audioStreamPlayer = GetNode<AudioStreamPlayer3D>("AudioStreamPlayer3D");
+		soundTimer = GetNode<Timer>("SoundTimer");
+		soundTimer.Timeout += () => RemoveSound();
+		if (currentTeam == CurrentTeam.Blue)
+		    soundNode = debugNode.GetNode<Node3D>("BlueSounds");
+		else
+			soundNode = debugNode.GetNode<Node3D>("RedSounds");
 
 		AddVisibleRaycast();
 		ResetCollision();
@@ -116,6 +127,18 @@ public partial class Player : CharacterBody3D
 		};
 		hitMarkerMesh.MaterialOverride = markerMat;
 		debugNode.AddChild(hitMarkerMesh);
+
+		soundsPosMesh = new MeshInstance3D
+		{
+			Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+			MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0, 0, 1),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			},
+			Visible = true
+		};
+		soundNode.AddChild(soundsPosMesh);
 	}
 
 	public void ResetCollision()
@@ -335,8 +358,8 @@ public partial class Player : CharacterBody3D
 	{
 		if (mouseButtonEvent.IsPressed() && mouseButtonEvent.ButtonIndex == MouseButton.Left)
 		{
+			SpawnSound();
 			animationTree.Set("parameters/Shoot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
-
 
 			// Get the camera and direction from its forward (center of screen)
 
@@ -400,6 +423,31 @@ public partial class Player : CharacterBody3D
 			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 			Speed = 5f;
 			camera.Fov = 70f;
+		}
+	}
+
+	public void SpawnSound()
+	{
+		audioStreamPlayer.Play();
+		if (soundsPosMesh != null)
+		{
+			soundsPosMesh.Visible = false;
+		}
+		if (soundsPosMesh.GetParent() != soundNode)
+		{
+			soundNode.AddChild(soundsPosMesh);
+		}
+		soundsPosMesh.GlobalTransform = new Transform3D(Basis.Identity, rayCast.GlobalPosition);
+		soundsPosMesh.Visible = true;
+		soundTimer.Start();
+	}
+
+	public void RemoveSound()
+	{
+		if (soundsPosMesh != null && soundsPosMesh.GetParent() == soundNode)
+		{
+			soundsPosMesh.Visible = false;
+			soundNode.RemoveChild(soundsPosMesh);
 		}
 	}
 
@@ -472,7 +520,7 @@ public partial class Player : CharacterBody3D
 		foreach (Enemy enemy in GetTree().GetNodesInGroup("Red"))
 		{
 			if (enemy != null && GodotObject.IsInstanceValid(enemy))
-				enemy.SetTargetPlayer(spawningPlayer);
+				enemy.SetTargetNavPos();
 		}
 
 		Input.MouseMode = Input.MouseModeEnum.Captured;
