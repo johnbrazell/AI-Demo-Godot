@@ -48,6 +48,8 @@ navigation_mesh = SubResource("NavigationMesh_o8d2y")
 
 [node name="Level" parent="NavigationRegion3D" instance=ExtResource("2_7w5y7")]
 
+[node name="NavLinks" type="Node3D" parent="NavigationRegion3D"]
+
 [node name="Player" parent="." instance=ExtResource("3_o8d2y")]
 unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.75696, 0.490674, 4.46359)

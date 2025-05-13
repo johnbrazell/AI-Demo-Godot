@@ -1,6 +1,47 @@
-[gd_resource type="BehaviorTree" load_steps=2 format=3 uid="uid://ctx8o7o2k11mf"]
+[gd_resource type="BehaviorTree" load_steps=5 format=3 uid="uid://ctx8o7o2k11mf"]
 
 [sub_resource type="BlackboardPlan" id="BlackboardPlan_toj1j"]
+var/Self/name = &"Self"
+var/Self/type = 24
+var/Self/hint = 0
+var/Self/hint_string = ""
+var/Target/name = &"Target"
+var/Target/type = 24
+var/Target/hint = 0
+var/Target/hint_string = ""
+var/TargetLastPos/name = &"TargetLastPos"
+var/TargetLastPos/type = 9
+var/TargetLastPos/value = Vector3(0, 0, 0)
+var/TargetLastPos/hint = 0
+var/TargetLastPos/hint_string = ""
+var/MoveToLocation/name = &"MoveToLocation"
+var/MoveToLocation/type = 9
+var/MoveToLocation/value = Vector3(0, 0, 0)
+var/MoveToLocation/hint = 0
+var/MoveToLocation/hint_string = ""
+var/CanSeeTarget/name = &"CanSeeTarget"
+var/CanSeeTarget/type = 1
+var/CanSeeTarget/value = false
+var/CanSeeTarget/hint = 0
+var/CanSeeTarget/hint_string = ""
+var/SawTarget/name = &"SawTarget"
+var/SawTarget/type = 1
+var/SawTarget/value = false
+var/SawTarget/hint = 0
+var/SawTarget/hint_string = ""
+var/HeardNoise/name = &"HeardNoise"
+var/HeardNoise/type = 1
+var/HeardNoise/value = false
+var/HeardNoise/hint = 0
+var/HeardNoise/hint_string = ""
+
+[sub_resource type="BTSequence" id="BTSequence_toj1j"]
+
+[sub_resource type="BTWait" id="BTWait_d514t"]
+
+[sub_resource type="BTSelector" id="BTSelector_qm6i8"]
+children = [SubResource("BTSequence_toj1j"), SubResource("BTWait_d514t")]
 
 [resource]
 blackboard_plan = SubResource("BlackboardPlan_toj1j")
+root_task = SubResource("BTSelector_qm6i8")

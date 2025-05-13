@@ -221,7 +221,7 @@ public partial class Enemy : CharacterBody3D
 			Vector2 targetposV2 = new Vector2(navAgent.TargetPosition.X, navAgent.TargetPosition.Z);
 			Vector2 currentPosV2 = new Vector2(GlobalPosition.X, GlobalPosition.Z);
 			float distance = targetposV2.DistanceTo(currentPosV2);
-			GD.Print(distance);
+
 			if (distance <= 1.5f)
 				return true;
 		}
@@ -269,14 +269,11 @@ public partial class Enemy : CharacterBody3D
 
 		if (!TargetPosReached())
 		{
-			stuckTimer += (float)delta;
-			UpdateLook(navAgent.GetNextPathPosition() + Vector3.Up);
-			if (stuckTimer >= stuckCooldown && GlobalPosition.DistanceTo(lastCheckedPosition) <= stuckThreshold)
-				HandleStuck();
+			UpdateLook(navAgent.GetNextPathPosition() + Vector3.Up * 1.5f);
+			HandleStuck((float)delta);
 		}
 		else
 			SetTargetNavPos();
-		
 
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
@@ -286,26 +283,38 @@ public partial class Enemy : CharacterBody3D
 		HandleAnimations();
 	}
 
-	public void HandleStuck()
+	public void HandleStuck(float delta)
 	{
-		if (stuckState == 0 && IsOnFloor())
+		stuckTimer += delta;
+		if (stuckTimer >= stuckCooldown)
 		{
-			Jump();
-			stuckState = 1;
-		}
-		else
-		{
-			Vector3 reroute = GetRandomPoint(navAgent.TargetPosition, 10);
-			if (reroute.IsFinite())
-				navAgent.TargetPosition = reroute;
-			else
-				navAgent.TargetPosition = GlobalPosition;
-			stuckState = 0;
-		}
+			float distMoved = GlobalPosition.DistanceTo(lastCheckedPosition);
+			bool isNearTarget = TargetPosReached();
 
-		lastCheckedPosition = GlobalPosition;
-		stuckTimer = 0f;
+			if (!isNearTarget && distMoved <= stuckThreshold)
+			{
+				if (stuckState == 0 && IsOnFloor())
+				{
+					Jump();
+					stuckState = 1;
+				}
+				else
+				{
+					Vector3 reroute = GetRandomPoint(navAgent.TargetPosition, 10);
+					navAgent.TargetPosition = reroute.IsFinite() ? reroute : GlobalPosition;
+					stuckState = 0;
+				}
+			}
+			else
+			{
+				stuckState = 0;
+			}
+
+			lastCheckedPosition = GlobalPosition;
+			stuckTimer = 0f;
+		}
 	}
+
 
 	private void UpdateLook(Vector3 targetGPos)
 	{
@@ -387,8 +396,12 @@ public partial class Enemy : CharacterBody3D
 
 	public void Jump()
 	{
-		isJumping = !isJumping;
-		GD.Print("Jumping: " + isJumping);
+		if (IsOnFloor() && !isJumping)
+		{
+			isJumping = true;
+			airTime = 0;
+			animationTree.Set("parameters/jump/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+		}
 	}
 
 	public Vector3 HandleJump(Vector3 velocity, double delta)
@@ -404,23 +417,21 @@ public partial class Enemy : CharacterBody3D
 				animationTree.Set("parameters/AimFall/blend_amount", 0);
 			}
 		}
-		else if (isJumping && IsOnFloor())
+		else 
 		{
+			if (isJumping)
+			{
+				velocity.Y = JumpVelocity;
+				isJumping = false;
+			}
+			else
+			{
+				velocity.Y = 0;
+			}
 			airTime = 0;
-			if (currentAnim == CurrentAnim.FallA)
-				currentAnim = CurrentAnim.PistolIdleA;
-			animationTree.Set("parameters/AimFall/blend_amount", 1);
-			velocity.Y = JumpVelocity;
-			animationTree.Set("parameters/jump/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
-			isJumping = false;
+
 		}
-		else if (IsOnFloor())
-		{
-			airTime = 0;
-			isJumping = false;
-			velocity += GetGravity() * (float)delta;
-		}
-		velocity.Y = Mathf.Clamp(velocity.Y, -100f, JumpVelocity);
+		velocity.Y = Mathf.Clamp(velocity.Y, -20f, 20f);
 		return velocity;
 	}
 
@@ -434,8 +445,8 @@ public partial class Enemy : CharacterBody3D
 			return velocity;
 
 		Vector3 direction = (navAgent.GetNextPathPosition() - GlobalPosition).Normalized();
-		Vector3 desiredVelocity = new Vector3(direction.X, Velocity.Y, direction.Z) * Speed;
-		velocity = desiredVelocity;
+		// Vector3 desiredVelocity = new Vector3(direction.X, Velocity.Y, direction.Z) * Speed;
+		// velocity = desiredVelocity;
 
 		if (!direction.IsZeroApprox())
 		{
@@ -478,7 +489,10 @@ public partial class Enemy : CharacterBody3D
 
 			Vector3 closestPoint = center;
 			closestPoint = NavigationServer3D.MapGetClosestPoint(navMapRid, randomPoint);
-			if (closestPoint != center && closestPoint.Y <= 9f && closestPoint.IsFinite())
+			closestPoint.X = Mathf.Clamp(closestPoint.X, -30, 10);
+			closestPoint.Z = Mathf.Clamp(closestPoint.Z, -10, 47); // in bounds of map 
+			closestPoint.Y = Mathf.Clamp(closestPoint.Y, -2.5f, 10);
+			if (closestPoint != center && closestPoint.IsFinite())
 				return closestPoint;
 		}
 		return center;
