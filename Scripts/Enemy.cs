@@ -180,20 +180,20 @@ public partial class Enemy : CharacterBody3D
 		cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 		eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
 		isAiming = false;
-    	PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
+		PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
 	}
 
-	public void SetTargetNavPos(Node3D newTarget = null)
+	public void SetTargetNavPos()//Node3D newTarget = null
 	{
-		if (newTarget != null)
-		{
-			navAgent.TargetPosition = newTarget.GlobalPosition;
-			return;
-		}
-		else
-		{
+		// if (newTarget != null)
+		// {
+		// 	navAgent.TargetPosition = newTarget.GlobalPosition;
+		// 	return;
+		// }
+		// else
+		// {
 			navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 60);
-		}
+		// }
 		// {
 		// 	var players = GetTree().GetNodesInGroup("Blue");
 		// 	if (players.Count > 0)
@@ -208,10 +208,12 @@ public partial class Enemy : CharacterBody3D
 			// }
 	}
 
-	public void SetTargetNavPos(Vector3 newTarget)
+	public void SetTargetNavPosVector3(Vector3 newTarget)
 	{
 		if (newTarget != Vector3.Zero)
 			navAgent.TargetPosition = newTarget;
+		else
+			navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 60);
 	}
 
 	public bool TargetPosReached()
@@ -221,7 +223,7 @@ public partial class Enemy : CharacterBody3D
 			Vector2 targetposV2 = new Vector2(navAgent.TargetPosition.X, navAgent.TargetPosition.Z);
 			Vector2 currentPosV2 = new Vector2(GlobalPosition.X, GlobalPosition.Z);
 			float distance = targetposV2.DistanceTo(currentPosV2);
-
+			GD.Print("Distance to target: " + distance);
 			if (distance <= 1.5f)
 				return true;
 		}
@@ -229,7 +231,7 @@ public partial class Enemy : CharacterBody3D
 		return false;
 	}
 
-	public bool TargetPosReached(float offset)
+	public bool TargetPosReachedOffset(float offset)
 	{
 		if (navAgent != null)
 		{
@@ -255,25 +257,25 @@ public partial class Enemy : CharacterBody3D
 			return;
 		}
 
-		if (navMapReady && HeardSound())
-		{
-			Vector3 closestSoundPos = GetClosestSoundPos();
-			if (closestSoundPos != GlobalPosition)
-			{
-				SetTargetNavPos(closestSoundPos);
-				UpdateLook(closestSoundPos);
-			}
-			if (TargetPosReached())
-				RemoveFoundSound();
-		}
+		// if (navMapReady && HeardSound())
+		// {
+		// 	Vector3 closestSoundPos = GetClosestSoundPos();
+		// 	if (closestSoundPos != GlobalPosition)
+		// 	{
+		// 		SetTargetNavPos(closestSoundPos);
+		// 		UpdateLook(closestSoundPos);
+		// 	}
+		// 	if (TargetPosReached())
+		// 		RemoveFoundSound();
+		// }
 
-		if (!TargetPosReached())
-		{
-			UpdateLook(navAgent.GetNextPathPosition() + Vector3.Up * 1.5f);
-			HandleStuck((float)delta);
-		}
-		else
-			SetTargetNavPos();
+		// if (!TargetPosReached())
+		// {
+		// 	UpdateLook(navAgent.GetNextPathPosition() + Vector3.Up * 1.5f);
+		// 	HandleStuck((float)delta);
+		// }
+		// else
+		// 	SetTargetNavPos();
 
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
@@ -314,7 +316,37 @@ public partial class Enemy : CharacterBody3D
 			stuckTimer = 0f;
 		}
 	}
+	
+	private void UpdateLookNextPathPos()
+	{
+		Vector3 toTarget = (navAgent.GetNextPathPosition() + Vector3.Up *1.5f)- eyes.GlobalPosition;
+		float verticalDistance = toTarget.Y;
+		float horizontalDistance = new Vector2(toTarget.X, toTarget.Z).Length();
 
+		if (horizontalDistance == 0)
+			return;
+
+		float pitchRadians = Mathf.Atan2(verticalDistance, horizontalDistance);
+		float pitchDegrees = Mathf.RadToDeg(pitchRadians);
+
+		// Clamp the angle between MinPitch and MaxPitch
+		pitchDegrees = Mathf.Clamp(pitchDegrees, MinPitch, MaxPitch);
+
+		// Convert to Blend3 range: -1 (down) to 0 (neutral) to 1 (up)
+		float normalizedBlend = Mathf.Remap(pitchDegrees, MinPitch, MaxPitch, -1f, 1f);
+
+		animationTree.Set("parameters/pitch/blend_amount", normalizedBlend);
+
+		// Calculate yaw angle to look at the player
+		float targetYaw = Mathf.Atan2(toTarget.X, toTarget.Z);
+		float currentYaw = Rotation.Y;
+
+		// Smoothly interpolate yaw
+		float newYaw = Mathf.LerpAngle(currentYaw, targetYaw, 0.1f); // Adjust 0.1f for turn speed
+
+		// Apply rotation (only yaw changes)
+		Rotation = new Vector3(Rotation.X, newYaw, Rotation.Z);
+	}
 
 	private void UpdateLook(Vector3 targetGPos)
 	{
@@ -493,7 +525,10 @@ public partial class Enemy : CharacterBody3D
 			closestPoint.Z = Mathf.Clamp(closestPoint.Z, -10, 47); // in bounds of map 
 			closestPoint.Y = Mathf.Clamp(closestPoint.Y, -2.5f, 10);
 			if (closestPoint != center && closestPoint.IsFinite())
+			{
 				return closestPoint;
+			}
+				
 		}
 		return center;
 	}

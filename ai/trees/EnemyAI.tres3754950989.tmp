@@ -1,0 +1,15 @@
+[gd_resource type="BehaviorTree" load_steps=5 format=3 uid="uid://5mcrolu4xqey"]
+
+[ext_resource type="Script" uid="uid://jnogbcme547y" path="res://ai/tasks/Testing.gd" id="1_updst"]
+
+[sub_resource type="BlackboardPlan" id="BlackboardPlan_eqxfp"]
+
+[sub_resource type="BTAction" id="BTAction_updst"]
+script = ExtResource("1_updst")
+
+[sub_resource type="BTSequence" id="BTSequence_o27a3"]
+children = [SubResource("BTAction_updst")]
+
+[resource]
+blackboard_plan = SubResource("BlackboardPlan_eqxfp")
+root_task = SubResource("BTSequence_o27a3")

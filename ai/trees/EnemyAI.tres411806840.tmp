@@ -1,0 +1,56 @@
+[gd_resource type="BehaviorTree" load_steps=17 format=3 uid="uid://5mcrolu4xqey"]
+
+[ext_resource type="Script" uid="uid://dklae0cb4bhtb" path="res://ai/tasks/TargetPosReached.gd" id="1_updst"]
+
+[sub_resource type="BlackboardPlan" id="BlackboardPlan_eqxfp"]
+
+[sub_resource type="BBVariant" id="BBVariant_eqxfp"]
+type = 1
+saved_value = true
+resource_name = "true"
+
+[sub_resource type="BTCheckAgentProperty" id="BTCheckAgentProperty_updst"]
+property = &"isCrouching"
+value = SubResource("BBVariant_eqxfp")
+
+[sub_resource type="BBNode" id="BBNode_o27a3"]
+saved_value = NodePath(".")
+resource_name = "."
+
+[sub_resource type="BTCallMethod" id="BTCallMethod_easam"]
+node = SubResource("BBNode_o27a3")
+method = &"ToggleCrouch"
+
+[sub_resource type="BTSequence" id="BTSequence_t7qyv"]
+children = [SubResource("BTCheckAgentProperty_updst"), SubResource("BTCallMethod_easam")]
+
+[sub_resource type="BTAlwaysSucceed" id="BTAlwaysSucceed_x8lil"]
+children = [SubResource("BTSequence_t7qyv")]
+
+[sub_resource type="BBNode" id="BBNode_krk53"]
+saved_value = NodePath(".")
+resource_name = "."
+
+[sub_resource type="BTCallMethod" id="BTCallMethod_lic0d"]
+node = SubResource("BBNode_krk53")
+method = &"SetTargetNavPos"
+
+[sub_resource type="BTAction" id="BTAction_o27a3"]
+script = ExtResource("1_updst")
+
+[sub_resource type="BTWait" id="BTWait_ud6ol"]
+
+[sub_resource type="BTSequence" id="BTSequence_k5iio"]
+children = [SubResource("BTCallMethod_lic0d"), SubResource("BTAction_o27a3"), SubResource("BTWait_ud6ol")]
+
+[sub_resource type="BTSequence" id="BTSequence_jqpxn"]
+children = [SubResource("BTAlwaysSucceed_x8lil"), SubResource("BTSequence_k5iio")]
+
+[sub_resource type="BTWait" id="BTWait_kn1gg"]
+
+[sub_resource type="BTSelector" id="BTSelector_fhf5k"]
+children = [SubResource("BTSequence_jqpxn"), SubResource("BTWait_kn1gg")]
+
+[resource]
+blackboard_plan = SubResource("BlackboardPlan_eqxfp")
+root_task = SubResource("BTSelector_fhf5k")
