@@ -63,6 +63,7 @@ public partial class Player : CharacterBody3D
 		Red
 	}
 	private CurrentTeam currentTeam = CurrentTeam.Blue;
+	private CurrentTeam enemyTeam = CurrentTeam.Red;
 	private PackedScene playerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
 	private NavigationRegion3D navMap;
 	private bool isDespawning = false;
@@ -92,9 +93,13 @@ public partial class Player : CharacterBody3D
 		soundTimer = GetNode<Timer>("SoundTimer");
 		soundTimer.Timeout += () => RemoveSound();
 		if (currentTeam == CurrentTeam.Blue)
+		{
 		    soundNode = debugNode.GetNode<Node3D>("BlueSounds");
+			enemyTeam = CurrentTeam.Red;
+		}
 		else
 			soundNode = debugNode.GetNode<Node3D>("RedSounds");
+			enemyTeam = CurrentTeam.Blue;
 
 		AddVisibleRaycast();
 		ResetCollision();
@@ -144,7 +149,8 @@ public partial class Player : CharacterBody3D
 	public void ResetCollision()
 	{
 		Speed = 5f;
-		capsuleShape.Height = 2f;
+		capsuleShape.Height = 1.864f;
+		capsuleShape.Radius = 0.248f;
 		collisionShape.Position = new Vector3(0, 0.875f, 0);
 		cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 		eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
@@ -465,7 +471,7 @@ public partial class Player : CharacterBody3D
 
 		if (currentHealth > 100)
 			currentHealth = MaxHealth;
-		GD.Print("Current Health: " + Name + currentHealth);
+		//GD.Print("Current Health: " + Name + currentHealth);
 		if (currentHealth <= 0 && !isDead)
 		{
 			isDead = true;
@@ -512,16 +518,16 @@ public partial class Player : CharacterBody3D
 		GetParent<Node3D>().AddChild(spawningPlayer);
 		spawningPlayer.GlobalPosition = spawnPoint3D.GlobalPosition + (Vector3.Up - new Vector3(0, 0.75f, 0));
 		spawningPlayer.isDead = false;
-		spawningPlayer.AddToGroup("Blue");
-
+		spawningPlayer.AddToGroup(currentTeam.ToString());
+		GD.Print(currentTeam.ToString());
 		// After spawning player in player Respawn()
 		await ToSignal(GetTree(), "process_frame"); // optional safety
 
-		foreach (Enemy enemy in GetTree().GetNodesInGroup("Red"))
-		{
-			if (enemy != null && GodotObject.IsInstanceValid(enemy))
-				enemy.SetTargetNavPos();
-		}
+		// foreach (Enemy enemy in GetTree().GetNodesInGroup(enemyTeam.ToString()))
+		// {
+		// 	if (enemy != null && GodotObject.IsInstanceValid(enemy))
+		// 		enemy.SetRandomNavPos();
+		// }
 
 		Input.MouseMode = Input.MouseModeEnum.Captured;
 		GetViewport().SetInputAsHandled();

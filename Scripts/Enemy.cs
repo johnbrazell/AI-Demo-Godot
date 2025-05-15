@@ -23,11 +23,11 @@ public partial class Enemy : CharacterBody3D
 	[Export] public CollisionShape3D collisionShape;
 	[Export] public CapsuleShape3D capsuleShape;
 
-	private bool isCrouching = false;
-	private bool isJumping = false;
-	private bool isMoving = false;
-	private bool isAiming = false;
-	private bool isShooting = false;
+	public bool isCrouching = false;
+	public bool isJumping = false;
+	public bool isMoving = false;
+	public bool isAiming = false;
+	public bool isShooting = false;
 	private float yaw = 0f;
 	private float pitch = 0f;
 	private Node3D PCamera;
@@ -59,6 +59,7 @@ public partial class Enemy : CharacterBody3D
 		Red
 	}
 	private CurrentTeam currentTeam = CurrentTeam.Red;
+	private CurrentTeam enemyTeam = CurrentTeam.Blue;
 	private PackedScene enemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
 
 
@@ -89,6 +90,11 @@ public partial class Enemy : CharacterBody3D
 	private float stuckThreshold = 0.2f; // how little distance = stuck
 	private float stuckCooldown = 0.5f;
 
+	public CharacterBody3D closestOpponent = null;
+	public Node3D closestOpponentEyes = null;
+	public Vector3 closestOpponentPos = Vector3.Zero;
+	public Timer clearOpponentPosTimer;
+
 	public override void _Ready()
 	{
 		Input.MouseMode = Input.MouseModeEnum.Captured;
@@ -115,16 +121,25 @@ public partial class Enemy : CharacterBody3D
 		audioStreamPlayer = GetNode<AudioStreamPlayer3D>("AudioStreamPlayer3D");
 		soundTimer = GetNode<Timer>("SoundTimer");
 		soundTimer.Timeout += () => RemoveSound();
+		clearOpponentPosTimer = GetNode<Timer>("ClearOpponentPosTimer");
+		clearOpponentPosTimer.Timeout += () =>
+		{
+			closestOpponentPos = closestOpponent.GlobalPosition;
+			closestOpponent = null;
+			closestOpponentEyes = null;
+		};
 
 		if (currentTeam == CurrentTeam.Red)
 		{
 			teamSoundNode = debugNode.GetNode<Node3D>("RedSounds");
 			EnemySoundNode = debugNode.GetNode<Node3D>("BlueSounds");
+			enemyTeam = CurrentTeam.Blue;
 		}
 		else
 		{
 			teamSoundNode = debugNode.GetNode<Node3D>("BlueSounds");
 			EnemySoundNode = debugNode.GetNode<Node3D>("RedSounds");
+			enemyTeam = CurrentTeam.Red;
 		}
 
 		AddVisibleRaycast();
@@ -175,7 +190,8 @@ public partial class Enemy : CharacterBody3D
 	public void ResetCollision()
 	{
 		Speed = 5f;
-		capsuleShape.Height = 2f;
+		capsuleShape.Height = 1.864f;
+		capsuleShape.Radius = 0.248f;
 		collisionShape.Position = new Vector3(0, 0.875f, 0);
 		cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 		eyes.Position = new Vector3(-0.039f, 1.636f, 0.149f);
@@ -183,7 +199,16 @@ public partial class Enemy : CharacterBody3D
 		PCamera.GetNode<Camera3D>("Camera3D").Fov = 70f;
 	}
 
-	public void SetTargetNavPos()//Node3D newTarget = null
+	public void SetRangeNavPos (float range)
+	{
+		if (navAgent != null)
+		{
+			Vector3 targetPos = GetRandomPoint(GlobalPosition, range);
+			navAgent.TargetPosition = targetPos;
+		}
+	}
+
+	public void SetRandomNavPos()//Node3D newTarget = null
 	{
 		// if (newTarget != null)
 		// {
@@ -223,7 +248,7 @@ public partial class Enemy : CharacterBody3D
 			Vector2 targetposV2 = new Vector2(navAgent.TargetPosition.X, navAgent.TargetPosition.Z);
 			Vector2 currentPosV2 = new Vector2(GlobalPosition.X, GlobalPosition.Z);
 			float distance = targetposV2.DistanceTo(currentPosV2);
-			GD.Print("Distance to target: " + distance);
+			//GD.Print("Distance to target: " + distance);
 			if (distance <= 1.5f)
 				return true;
 		}
@@ -317,7 +342,7 @@ public partial class Enemy : CharacterBody3D
 		}
 	}
 	
-	private void UpdateLookNextPathPos()
+	public void UpdateLookNextPathPos()
 	{
 		Vector3 toTarget = (navAgent.GetNextPathPosition() + Vector3.Up *1.5f)- eyes.GlobalPosition;
 		float verticalDistance = toTarget.Y;
@@ -348,7 +373,7 @@ public partial class Enemy : CharacterBody3D
 		Rotation = new Vector3(Rotation.X, newYaw, Rotation.Z);
 	}
 
-	private void UpdateLook(Vector3 targetGPos)
+	public void UpdateLook(Vector3 targetGPos)
 	{
 		Vector3 toTarget = targetGPos - eyes.GlobalPosition;
 		float verticalDistance = toTarget.Y;
@@ -379,52 +404,67 @@ public partial class Enemy : CharacterBody3D
 		Rotation = new Vector3(Rotation.X, newYaw, Rotation.Z);
 	}
 
-	public bool CanSeePlayer()
+	public CharacterBody3D CanSeeOpponent()
 	{
-		if (isDespawning || !GodotObject.IsInstanceValid(playerEyes))
-		return false;
+		closestOpponent = null;
+		// closestOpponentEyes = null;
+		// closestOpponentPos = Vector3.Zero;
 
-		Vector3 start = eyes.GlobalPosition;
-		Vector3 direction = (playerEyes.GlobalPosition - start).Normalized();
+		if (isDespawning)
+			return null;
 
-		// Cast the ray
-		float rayLength = 1000f;
-		Vector3 end = start + direction * rayLength;
-
-		// Optional: Physics raycast
+		// enemyTeam = currentTeam == CurrentTeam.Blue ? "Red" : "Blue";
 		var spaceState = GetWorld3D().DirectSpaceState;
-		var query = PhysicsRayQueryParameters3D.Create(start, end);
-		query.Exclude = new Godot.Collections.Array<Rid> { this.GetRid() };
-		var result = spaceState.IntersectRay(query);
+		var opponents = GetTree().GetNodesInGroup(enemyTeam.ToString());
 
-		// Draw using ImmediateMesh
-		// rayMeshRed.ClearSurfaces();
-		// rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		// rayMeshRed.SurfaceAddVertex(start);
-		// rayMeshRed.SurfaceAddVertex(end);
-		// rayMeshRed.SurfaceEnd();
+		float closestDistance = 99f;
 
-		if (result.Count > 0)
+		foreach (Node node in opponents)
 		{
-			// end = (Vector3)result["position"];
-			// hitMarkerMeshRed.GlobalTransform = new Transform3D(Basis.Identity, end);
-			// hitMarkerMeshRed.Visible = true;
-			string enemyTeam;
-			if (currentTeam == CurrentTeam.Blue)
+			if (node is CharacterBody3D opponent && opponent.IsInsideTree())
 			{
-				enemyTeam = CurrentTeam.Red.ToString();
+				closestOpponentEyes = opponent.GetNodeOrNull<Node3D>("Rig/Skeleton3D/Eyes");
+				if (closestOpponentEyes == null)
+					continue;
+
+				Vector3 start = eyes.GlobalPosition;
+				Vector3 end = closestOpponentEyes.GlobalPosition;
+				float distance = start.DistanceTo(end);
+
+				var query = PhysicsRayQueryParameters3D.Create(start, end);
+				query.Exclude = new Godot.Collections.Array<Rid> { this.GetRid() };
+
+				var result = spaceState.IntersectRay(query);
+
+				if (result.Count > 0 && result["collider"].Obj is Node collider && collider.IsInGroup(enemyTeam.ToString()))
+				{
+					if (distance < closestDistance)
+					{
+						closestDistance = distance;
+						closestOpponent = opponent;
+						closestOpponentPos = closestOpponent.GlobalPosition;
+						clearOpponentPosTimer.Start();
+					}
+				}
 			}
-			else
-			{
-				enemyTeam = CurrentTeam.Blue.ToString();
-			}
-			if (result["collider"].Obj is Node3D collider && collider.IsInGroup(enemyTeam))
-				return true;
-			return false;
 		}
-		else
-			return false;
+		
+		return closestOpponent;
 	}
+
+	public void SetLastOpponentNavPos()
+	{
+		if (closestOpponentPos != Vector3.Zero)
+		{
+			navAgent.TargetPosition = closestOpponentPos;
+		}
+	}
+
+	public void RemoveLastOpponentPos()
+	{
+		closestOpponentPos = Vector3.Zero;
+	}
+
 
 	public void Jump()
 	{
@@ -499,6 +539,30 @@ public partial class Enemy : CharacterBody3D
 			isMoving = false;
 		}
 		return velocity;
+	}
+
+	public void Strafe()
+	{
+		if (isDead) return;
+
+		Vector3 forward = GlobalTransform.Basis.Z.Normalized();
+		Vector3 right = GlobalTransform.Basis.X.Normalized();
+
+		Vector3 strafeDirection = rng.Randf() < 0.5f ? right : -right;
+		Vector3 strafeTarget = GlobalPosition + strafeDirection * rng.RandfRange(0.75f, 2.5f);
+
+		if (navMap!=null)
+		{
+			Vector3 closestPoint = NavigationServer3D.MapGetClosestPoint(navMap.GetNavigationMap(), strafeTarget);
+			if (closestPoint != GlobalPosition && closestPoint.IsFinite())
+			{
+				navAgent.TargetPosition = closestPoint;
+			}
+		}
+		else
+		{
+			navAgent.TargetPosition = strafeTarget;
+		}
 	}
 
 	public Vector3 GetRandomPoint(Vector3 center, float radius)
@@ -620,7 +684,7 @@ public partial class Enemy : CharacterBody3D
 
 	public void Shoot()
 	{
-		if (!isShooting || !GodotObject.IsInstanceValid(playerEyes))
+		if (!isShooting)
 			return;
 
 		SpawnSound();
@@ -629,7 +693,23 @@ public partial class Enemy : CharacterBody3D
 		// Get the camera and direction from its forward (center of screen)
 		//Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
 		Vector3 start = rayCast.GlobalPosition;
-		Vector3 direction = (playerEyes.GlobalPosition - start).Normalized();//-camera.GlobalTransform.Basis.Z;// Forward direction
+		Vector3 baseDirection = (closestOpponentEyes.GlobalPosition - start).Normalized();
+
+		// Simulate inaccuracy: pick a random direction within a cone
+		
+		float maxAngleDegrees = isAiming? 1f : 4f; // controls the cone width (e.g. 6 degrees of inaccuracy)
+		float maxAngleRadians = Mathf.DegToRad(maxAngleDegrees);
+
+		float yaw = rng.RandfRange(-maxAngleRadians, maxAngleRadians);
+		float pitch = rng.RandfRange(-maxAngleRadians, maxAngleRadians);
+
+		Basis yawRot = new Basis(Vector3.Up, yaw);
+		Basis pitchRot = new Basis(Vector3.Right, pitch);
+
+		Basis randomRotation = yawRot * pitchRot;
+
+		// Apply the offset to the direction
+		Vector3 direction = (randomRotation * baseDirection).Normalized();
 
 		// Cast the ray
 		float rayLength = 1000f;
@@ -654,17 +734,17 @@ public partial class Enemy : CharacterBody3D
 			hitMarkerMeshRed.Visible = true;
 			Node collider = result["collider"].As<Node>();
 
-			string enemyTeam;
-			if (currentTeam == CurrentTeam.Blue)
-			{
-				enemyTeam = CurrentTeam.Red.ToString();
-			}
-			else
-			{
-				enemyTeam = CurrentTeam.Blue.ToString();
-			}
+			// string enemyTeam;
+			// if (currentTeam == CurrentTeam.Blue)
+			// {
+			// 	enemyTeam = CurrentTeam.Red.ToString();
+			// }
+			// else
+			// {
+			// 	enemyTeam = CurrentTeam.Blue.ToString();
+			// }
 
-			if (collider is CharacterBody3D character && character.IsInGroup(enemyTeam))
+			if (collider is CharacterBody3D character && character.IsInGroup(enemyTeam.ToString()))
 			{
 				collider.Call("TakeDamage", 14.3f);
 			}
@@ -773,7 +853,7 @@ public partial class Enemy : CharacterBody3D
 
 		if (currentHealth > 100)
 			currentHealth = MaxHealth;
-		GD.Print("Current Health: " + Name + currentHealth);
+		//GD.Print("Current Health: " + Name + currentHealth);
 		if (currentHealth <= 0 && !isDead)
 		{
 			isDead = true;
@@ -822,11 +902,12 @@ public partial class Enemy : CharacterBody3D
 
 		GetParent<Node3D>().AddChild(spawningEnemy);
 		spawningEnemy.GlobalPosition = spawnPoint3D.GlobalPosition + (Vector3.Up - new Vector3(0, 0.75f, 0));
-		spawningEnemy.AddToGroup("Red");
+		spawningEnemy.AddToGroup(currentTeam.ToString());
 
 		isDespawning = true;
 		player = null;
-		playerEyes = null;
+		closestOpponent = null;
+		closestOpponentEyes = null;
 		isShooting = false;
 		shootTimer.Stop();
 		soundTimer.Stop();

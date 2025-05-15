@@ -1,0 +1,307 @@
+[gd_resource type="BehaviorTree" load_steps=106 format=3 uid="uid://5mcrolu4xqey"]
+
+[ext_resource type="Script" uid="uid://dklae0cb4bhtb" path="res://ai/tasks/MoveTo.gd" id="1_easam"]
+[ext_resource type="Script" uid="uid://cjdwgr484h76" path="res://ai/tasks/CheckSeeOpponent.gd" id="1_jqpxn"]
+[ext_resource type="Script" uid="uid://beciu1s41v588" path="res://ai/tasks/CheckHeardSound.gd" id="1_lvi8c"]
+[ext_resource type="Script" uid="uid://dkvll7lbkhal6" path="res://ai/tasks/StopCrouching.gd" id="1_x8lil"]
+[ext_resource type="Script" uid="uid://bokmvhrjb6v1n" path="res://ai/tasks/MoveToOffset.gd" id="2_k5iio"]
+[ext_resource type="Script" uid="uid://bfpg7e7qf1cqp" path="res://ai/tasks/StopShooting.gd" id="2_krk53"]
+[ext_resource type="Script" uid="uid://kq13npgalv10" path="res://ai/tasks/LookAtPath.gd" id="2_t7qyv"]
+[ext_resource type="Script" uid="uid://cy4kn7yqryod7" path="res://ai/tasks/HandleStuck.gd" id="3_easam"]
+[ext_resource type="Script" uid="uid://b8taf365dqlgr" path="res://ai/tasks/StartShooting.gd" id="3_kn1gg"]
+[ext_resource type="Script" uid="uid://cfw5lj5mm5plt" path="res://ai/tasks/LookAtOpponent.gd" id="3_ud6ol"]
+[ext_resource type="Script" uid="uid://bydhj5ssj87qn" path="res://ai/tasks/SetSoundPos.gd" id="3_uk8qy"]
+[ext_resource type="Script" uid="uid://njlb7hcey3c2" path="res://ai/tasks/LookAtSound.gd" id="4_krk53"]
+[ext_resource type="Script" uid="uid://b6ig111p5ll5e" path="res://ai/tasks/ToggleCrouch.gd" id="7_cdarv"]
+[ext_resource type="Script" uid="uid://bxtd0cmbs0n25" path="res://ai/tasks/CheckSawOpponent.gd" id="7_fhf5k"]
+[ext_resource type="Script" uid="uid://dkdwpy60cmab" path="res://ai/tasks/StartAim.gd" id="7_ltuf3"]
+[ext_resource type="Script" uid="uid://cghis3xmtlfm7" path="res://ai/tasks/SetCloseNavPos.gd" id="7_n8yiu"]
+[ext_resource type="Script" uid="uid://ca1x5sm2rybed" path="res://ai/tasks/RemoveFoundSound.gd" id="7_uk8qy"]
+[ext_resource type="Script" uid="uid://bwfw3l8sstlit" path="res://ai/tasks/SetRandNavPos.gd" id="8_j61d0"]
+[ext_resource type="Script" uid="uid://c4ksift0ry7w7" path="res://ai/tasks/StopAim.gd" id="9_bo4x1"]
+[ext_resource type="Script" uid="uid://car1msolm5xt" path="res://ai/tasks/SetLastOpponentPos.gd" id="9_cqjs7"]
+[ext_resource type="Script" uid="uid://bbkdct5pdvyus" path="res://ai/tasks/Strafe.gd" id="10_jos37"]
+[ext_resource type="Script" uid="uid://d1ii66p53ecad" path="res://ai/tasks/RemoveLastOpponentPos.gd" id="11_hqsg7"]
+[ext_resource type="Script" uid="uid://g2gysaswgy42" path="res://ai/tasks/LookAtLastOpponentPos.gd" id="11_tytq2"]
+
+[sub_resource type="BlackboardPlan" id="BlackboardPlan_eqxfp"]
+
+[sub_resource type="BTAction" id="BTAction_1atkw"]
+script = ExtResource("1_jqpxn")
+
+[sub_resource type="BTAction" id="BTAction_bo4x1"]
+script = ExtResource("1_x8lil")
+
+[sub_resource type="BTAction" id="BTAction_cedo8"]
+script = ExtResource("3_kn1gg")
+
+[sub_resource type="BTAction" id="BTAction_6m1da"]
+script = ExtResource("3_ud6ol")
+
+[sub_resource type="BTAction" id="BTAction_jos37"]
+script = ExtResource("2_k5iio")
+
+[sub_resource type="BTAction" id="BTAction_tdquu"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_6m1da"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_6m1da"), SubResource("BTAction_jos37"), SubResource("BTAction_tdquu")]
+
+[sub_resource type="BTSequence" id="BTSequence_1atkw"]
+custom_name = "Seq - Get Closer / Shoot"
+children = [SubResource("BTAction_1atkw"), SubResource("BTAction_bo4x1"), SubResource("BTAction_cedo8"), SubResource("BTParallel_6m1da")]
+
+[sub_resource type="BTAction" id="BTAction_sy3pv"]
+script = ExtResource("3_ud6ol")
+
+[sub_resource type="BTAction" id="BTAction_kvrsq"]
+script = ExtResource("7_ltuf3")
+
+[sub_resource type="BTAction" id="BTAction_5it5j"]
+script = ExtResource("3_kn1gg")
+
+[sub_resource type="BTAction" id="BTAction_xs21a"]
+script = ExtResource("7_cdarv")
+
+[sub_resource type="BTProbability" id="BTProbability_xs21a"]
+run_chance = 0.001
+children = [SubResource("BTAction_xs21a")]
+
+[sub_resource type="BTParallel" id="BTParallel_kvrsq"]
+num_successes_required = 5
+repeat = true
+children = [SubResource("BTAction_sy3pv"), SubResource("BTAction_kvrsq"), SubResource("BTAction_5it5j"), SubResource("BTProbability_xs21a")]
+
+[sub_resource type="BTTimeLimit" id="BTTimeLimit_iwpw5"]
+time_limit = 2.0
+children = [SubResource("BTParallel_kvrsq")]
+
+[sub_resource type="BTSequence" id="BTSequence_cqjs7"]
+custom_name = "Seq - Standard Ranged"
+children = [SubResource("BTTimeLimit_iwpw5")]
+
+[sub_resource type="BTAction" id="BTAction_gnvm8"]
+script = ExtResource("3_ud6ol")
+
+[sub_resource type="BTSequence" id="BTSequence_tytq2"]
+custom_name = "Seq - Find Cover"
+children = [SubResource("BTAction_gnvm8")]
+
+[sub_resource type="BTAction" id="BTAction_buyyy"]
+script = ExtResource("9_bo4x1")
+
+[sub_resource type="BTAction" id="BTAction_7nkib"]
+script = ExtResource("3_ud6ol")
+
+[sub_resource type="BTAction" id="BTAction_iwpw5"]
+script = ExtResource("3_kn1gg")
+
+[sub_resource type="BTAction" id="BTAction_3aif1"]
+script = ExtResource("10_jos37")
+
+[sub_resource type="BTAction" id="BTAction_u0th3"]
+script = ExtResource("7_cdarv")
+
+[sub_resource type="BTProbability" id="BTProbability_buyyy"]
+run_chance = 0.001
+children = [SubResource("BTAction_u0th3")]
+
+[sub_resource type="BTParallel" id="BTParallel_3aif1"]
+num_successes_required = 5
+repeat = true
+children = [SubResource("BTAction_7nkib"), SubResource("BTAction_iwpw5"), SubResource("BTAction_3aif1"), SubResource("BTProbability_buyyy")]
+
+[sub_resource type="BTTimeLimit" id="BTTimeLimit_mqexu"]
+time_limit = 3.0
+children = [SubResource("BTParallel_3aif1")]
+
+[sub_resource type="BTSequence" id="BTSequence_ltuf3"]
+custom_name = "Seq - Strafe & Crouch"
+children = [SubResource("BTAction_buyyy"), SubResource("BTTimeLimit_mqexu")]
+
+[sub_resource type="BTProbabilitySelector" id="BTProbabilitySelector_bo4x1"]
+custom_name = "Prob Sel - Do Tactic"
+children = [SubResource("BTSequence_cqjs7"), SubResource("BTSequence_tytq2"), SubResource("BTSequence_ltuf3")]
+
+[sub_resource type="BTSequence" id="BTSequence_sy3pv"]
+custom_name = "Seq - Engage"
+children = [SubResource("BTSequence_1atkw"), SubResource("BTProbabilitySelector_bo4x1")]
+
+[sub_resource type="BTAction" id="BTAction_ph1iy"]
+script = ExtResource("7_fhf5k")
+
+[sub_resource type="BTAction" id="BTAction_7jjxo"]
+script = ExtResource("1_x8lil")
+
+[sub_resource type="BTAction" id="BTAction_sk100"]
+script = ExtResource("2_krk53")
+
+[sub_resource type="BTAction" id="BTAction_c8dtk"]
+script = ExtResource("9_cqjs7")
+
+[sub_resource type="BTAction" id="BTAction_vahif"]
+script = ExtResource("1_easam")
+
+[sub_resource type="BTAction" id="BTAction_dcoc4"]
+script = ExtResource("11_tytq2")
+
+[sub_resource type="BTAction" id="BTAction_gw4mo"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_vahif"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_vahif"), SubResource("BTAction_dcoc4"), SubResource("BTAction_gw4mo")]
+
+[sub_resource type="BTAction" id="BTAction_u0swa"]
+script = ExtResource("11_hqsg7")
+
+[sub_resource type="BTWait" id="BTWait_dcoc4"]
+
+[sub_resource type="BTAction" id="BTAction_4pacf"]
+script = ExtResource("7_n8yiu")
+
+[sub_resource type="BTAction" id="BTAction_rbl2y"]
+script = ExtResource("1_easam")
+
+[sub_resource type="BTAction" id="BTAction_3kugv"]
+script = ExtResource("2_t7qyv")
+
+[sub_resource type="BTAction" id="BTAction_7yj0k"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_5it5j"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_rbl2y"), SubResource("BTAction_3kugv"), SubResource("BTAction_7yj0k")]
+
+[sub_resource type="BTWait" id="BTWait_xs21a"]
+
+[sub_resource type="BTSequence" id="BTSequence_kvrsq"]
+custom_name = "Seq - Move To Close Pos"
+children = [SubResource("BTAction_4pacf"), SubResource("BTParallel_5it5j"), SubResource("BTWait_xs21a")]
+
+[sub_resource type="BTRepeat" id="BTRepeat_iwpw5"]
+times = 2
+children = [SubResource("BTSequence_kvrsq")]
+
+[sub_resource type="BTSequence" id="BTSequence_c8dtk"]
+custom_name = "Seq - Move To Last Target Pos"
+children = [SubResource("BTAction_c8dtk"), SubResource("BTParallel_vahif"), SubResource("BTAction_u0swa"), SubResource("BTWait_dcoc4"), SubResource("BTRepeat_iwpw5")]
+
+[sub_resource type="BTSequence" id="BTSequence_lvi8c"]
+custom_name = "Seq - Investigate Last Target Pos"
+children = [SubResource("BTAction_ph1iy"), SubResource("BTAction_7jjxo"), SubResource("BTAction_sk100"), SubResource("BTSequence_c8dtk")]
+
+[sub_resource type="BTAction" id="BTAction_ltuf3"]
+script = ExtResource("1_lvi8c")
+
+[sub_resource type="BTAction" id="BTAction_lic0d"]
+script = ExtResource("1_x8lil")
+
+[sub_resource type="BTAction" id="BTAction_j61d0"]
+script = ExtResource("2_krk53")
+
+[sub_resource type="BTAction" id="BTAction_jqpxn"]
+script = ExtResource("3_uk8qy")
+
+[sub_resource type="BTAction" id="BTAction_n8yiu"]
+script = ExtResource("1_easam")
+
+[sub_resource type="BTAction" id="BTAction_uk8qy"]
+script = ExtResource("4_krk53")
+
+[sub_resource type="BTAction" id="BTAction_k5iio"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_jqpxn"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_n8yiu"), SubResource("BTAction_uk8qy"), SubResource("BTAction_k5iio")]
+
+[sub_resource type="BTAction" id="BTAction_cdarv"]
+script = ExtResource("7_uk8qy")
+
+[sub_resource type="BTWait" id="BTWait_lic0d"]
+
+[sub_resource type="BTAction" id="BTAction_tytq2"]
+script = ExtResource("7_n8yiu")
+
+[sub_resource type="BTAction" id="BTAction_kn1gg"]
+script = ExtResource("1_easam")
+
+[sub_resource type="BTAction" id="BTAction_fhf5k"]
+script = ExtResource("2_t7qyv")
+
+[sub_resource type="BTAction" id="BTAction_cqjs7"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_hqsg7"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_kn1gg"), SubResource("BTAction_fhf5k"), SubResource("BTAction_cqjs7")]
+
+[sub_resource type="BTWait" id="BTWait_tytq2"]
+
+[sub_resource type="BTSequence" id="BTSequence_cdarv"]
+custom_name = "Seq - Move To Close Pos"
+children = [SubResource("BTAction_tytq2"), SubResource("BTParallel_hqsg7"), SubResource("BTWait_tytq2")]
+
+[sub_resource type="BTRepeat" id="BTRepeat_ltuf3"]
+times = 2
+children = [SubResource("BTSequence_cdarv")]
+
+[sub_resource type="BTSequence" id="BTSequence_kn1gg"]
+custom_name = "Seq - Move To Sound Pos"
+children = [SubResource("BTAction_jqpxn"), SubResource("BTParallel_jqpxn"), SubResource("BTAction_cdarv"), SubResource("BTWait_lic0d"), SubResource("BTRepeat_ltuf3")]
+
+[sub_resource type="BTSequence" id="BTSequence_uk8qy"]
+custom_name = "Seq - Investigate Noise"
+children = [SubResource("BTAction_ltuf3"), SubResource("BTAction_lic0d"), SubResource("BTAction_j61d0"), SubResource("BTSequence_kn1gg")]
+
+[sub_resource type="BTAction" id="BTAction_lvi8c"]
+script = ExtResource("1_x8lil")
+
+[sub_resource type="BTAction" id="BTAction_ud6ol"]
+script = ExtResource("2_krk53")
+
+[sub_resource type="BTAction" id="BTAction_hqsg7"]
+script = ExtResource("8_j61d0")
+
+[sub_resource type="BTAction" id="BTAction_o27a3"]
+script = ExtResource("1_easam")
+
+[sub_resource type="BTAction" id="BTAction_easam"]
+script = ExtResource("2_t7qyv")
+
+[sub_resource type="BTAction" id="BTAction_t7qyv"]
+script = ExtResource("3_easam")
+
+[sub_resource type="BTParallel" id="BTParallel_updst"]
+num_successes_required = 2
+repeat = true
+children = [SubResource("BTAction_o27a3"), SubResource("BTAction_easam"), SubResource("BTAction_t7qyv")]
+
+[sub_resource type="BTWait" id="BTWait_ud6ol"]
+duration = 2.0
+
+[sub_resource type="BTSequence" id="BTSequence_k5iio"]
+custom_name = "Seq - Move To Rand Pos"
+children = [SubResource("BTAction_hqsg7"), SubResource("BTParallel_updst"), SubResource("BTWait_ud6ol")]
+
+[sub_resource type="BTSequence" id="BTSequence_jqpxn"]
+custom_name = "Seq - Patrol"
+children = [SubResource("BTAction_lvi8c"), SubResource("BTAction_ud6ol"), SubResource("BTSequence_k5iio")]
+
+[sub_resource type="BTWait" id="BTWait_kn1gg"]
+custom_name = "Fail Safe Wait"
+
+[sub_resource type="BTSelector" id="BTSelector_fhf5k"]
+custom_name = "Sel - Root"
+children = [SubResource("BTSequence_sy3pv"), SubResource("BTSequence_lvi8c"), SubResource("BTSequence_uk8qy"), SubResource("BTSequence_jqpxn"), SubResource("BTWait_kn1gg")]
+
+[resource]
+blackboard_plan = SubResource("BlackboardPlan_eqxfp")
+root_task = SubResource("BTSelector_fhf5k")
