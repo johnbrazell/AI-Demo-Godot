@@ -82,6 +82,7 @@ public partial class Player : CharacterBody3D
 		PCamera = GetNode<Node3D>("%PhantomCamera3D");
 		cameraOrbit = GetNode<Node3D>("CameraOrbit");
 		camera = PCamera.GetNode<Camera3D>("Camera3D");
+		camera.Current = true;
 		eyes = GetNode<Node3D>("Rig").GetNode<Skeleton3D>("Skeleton3D").GetNode<Node3D>("Eyes");
 		collisionShape = GetNode<CollisionShape3D>("CollisionShape3D");
 		capsuleShape = collisionShape.Shape as CapsuleShape3D;
@@ -94,15 +95,19 @@ public partial class Player : CharacterBody3D
 		soundTimer.Timeout += () => RemoveSound();
 		if (currentTeam == CurrentTeam.Blue)
 		{
-		    soundNode = debugNode.GetNode<Node3D>("BlueSounds");
+			soundNode = debugNode.GetNode<Node3D>("BlueSounds");
 			enemyTeam = CurrentTeam.Red;
 		}
 		else
+		{
 			soundNode = debugNode.GetNode<Node3D>("RedSounds");
 			enemyTeam = CurrentTeam.Blue;
+		}
 
 		AddVisibleRaycast();
 		ResetCollision();
+		if (camera == null)
+			GD.Print("Camera is not initialized after Ready.");
 	}
 
 	public void AddVisibleRaycast()
@@ -141,7 +146,7 @@ public partial class Player : CharacterBody3D
 				AlbedoColor = new Color(0, 0, 1),
 				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
 			},
-			Visible = true
+			Visible = false
 		};
 		soundNode.AddChild(soundsPosMesh);
 	}
@@ -373,7 +378,7 @@ public partial class Player : CharacterBody3D
 			Vector3 direction = -camera.GlobalTransform.Basis.Z;// Forward direction
 
 			// Cast the ray
-			float rayLength = 1000f;
+			float rayLength = 200f;
 			Vector3 end = start + direction * rayLength;
 
 			// Optional: Physics raycast
@@ -444,7 +449,7 @@ public partial class Player : CharacterBody3D
 			soundNode.AddChild(soundsPosMesh);
 		}
 		soundsPosMesh.GlobalTransform = new Transform3D(Basis.Identity, rayCast.GlobalPosition);
-		soundsPosMesh.Visible = true;
+		soundsPosMesh.Visible = false;
 		soundTimer.Start();
 	}
 
@@ -486,6 +491,14 @@ public partial class Player : CharacterBody3D
 		}
 	}
 
+	public void ExitTree()
+	{
+		//NavigationServer3D.MapChanged -= OnMapChanged;
+		//shootTimer.Timeout -= Shoot;
+		soundTimer.Timeout -= RemoveSound;
+		//clearOpponentPosTimer.Timeout -= ClearOpponentData;
+	}
+
 	public async void Respawn()
 	{
 		int targetIndex = (int)rng.RandfRange(0, 5);
@@ -494,7 +507,7 @@ public partial class Player : CharacterBody3D
 		if (currentTeam == CurrentTeam.Blue)
 		{
 			teamSpawns.Clear();
-			foreach (var spawn in navMap.GetNode<Node3D>("Level").GetNode<Node3D>("%BlueSpawns").GetChildren())
+			foreach (var spawn in GetParent<Node3D>().GetNode<Node3D>("%BlueSpawns").GetChildren())
 			{
 				teamSpawns.Add(spawn as Node3D);
 			}
@@ -502,7 +515,7 @@ public partial class Player : CharacterBody3D
 		else
 		{
 			teamSpawns.Clear();
-			foreach (var spawn in navMap.GetNode<Node3D>("Level").GetNode<Node3D>("%RedSpawns").GetChildren())
+			foreach (var spawn in GetParent<Node3D>().GetNode<Node3D>("%RedSpawns").GetChildren())
 			{
 				teamSpawns.Add(spawn as Node3D);
 			}
@@ -518,8 +531,10 @@ public partial class Player : CharacterBody3D
 		GetParent<Node3D>().AddChild(spawningPlayer);
 		spawningPlayer.GlobalPosition = spawnPoint3D.GlobalPosition + (Vector3.Up - new Vector3(0, 0.75f, 0));
 		spawningPlayer.isDead = false;
+		spawningPlayer.camera.Current = true;
 		spawningPlayer.AddToGroup(currentTeam.ToString());
-		GD.Print(currentTeam.ToString());
+
+		//GD.Print(currentTeam.ToString());
 		// After spawning player in player Respawn()
 		await ToSignal(GetTree(), "process_frame"); // optional safety
 
@@ -532,7 +547,7 @@ public partial class Player : CharacterBody3D
 		Input.MouseMode = Input.MouseModeEnum.Captured;
 		GetViewport().SetInputAsHandled();
 		spawningPlayer.ReacquireInput();
-
+		ExitTree();
 		QueueFree();
 	}
 

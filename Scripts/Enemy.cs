@@ -58,9 +58,9 @@ public partial class Enemy : CharacterBody3D
 		Blue,
 		Red
 	}
-	private CurrentTeam currentTeam = CurrentTeam.Red;
-	private CurrentTeam enemyTeam = CurrentTeam.Blue;
-	private PackedScene enemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
+	private CurrentTeam currentTeam;// = CurrentTeam.Red;
+	private CurrentTeam enemyTeam;// = CurrentTeam.Blue;
+	private PackedScene enemyScene; // = GD.Load<PackedScene>("res://Scenes/RedAI.tscn");
 
 
 	public Node3D debugNode;
@@ -131,14 +131,17 @@ public partial class Enemy : CharacterBody3D
 			closestOpponentEyes = null;
 		};
 
+		currentTeam = GetGroups().Contains("Red") ? currentTeam = CurrentTeam.Red : currentTeam = CurrentTeam.Blue;
 		if (currentTeam == CurrentTeam.Red)
 		{
+			enemyScene = GD.Load<PackedScene>("res://Scenes/RedAI.tscn");
 			teamSoundNode = debugNode.GetNode<Node3D>("RedSounds");
 			EnemySoundNode = debugNode.GetNode<Node3D>("BlueSounds");
 			enemyTeam = CurrentTeam.Blue;
 		}
 		else
 		{
+			enemyScene = GD.Load<PackedScene>("res://Scenes/BlueAI.tscn");
 			teamSoundNode = debugNode.GetNode<Node3D>("BlueSounds");
 			EnemySoundNode = debugNode.GetNode<Node3D>("RedSounds");
 			enemyTeam = CurrentTeam.Red;
@@ -154,12 +157,22 @@ public partial class Enemy : CharacterBody3D
 		rayMeshRed = new ImmediateMesh();
 
 		debugLineMeshRed.Mesh = rayMeshRed;
-		debugLineMeshRed.MaterialOverride = new StandardMaterial3D
+		if (enemyTeam == CurrentTeam.Red)
 		{
-			AlbedoColor = new Color(1, 0, 0),
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
-		};
-
+			debugLineMeshRed.MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(1, 0, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			};
+		}
+		else
+		{
+			debugLineMeshRed.MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0, 1, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			};
+		}
 		debugNode.AddChild(debugLineMeshRed);
 		debugLineMeshRed.GlobalTransform = Transform3D.Identity;
 
@@ -168,24 +181,53 @@ public partial class Enemy : CharacterBody3D
 			Mesh = new BoxMesh { Size = new Vector3(0.1f, 0.1f, 0.1f) },
 			Visible = false
 		};
-		StandardMaterial3D markerMat = new StandardMaterial3D
+		if (currentTeam == CurrentTeam.Red)
 		{
-			AlbedoColor = new Color(0, 1, 0),
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-		};
-		hitMarkerMeshRed.MaterialOverride = markerMat;
-		debugNode.AddChild(hitMarkerMeshRed);
-
-		soundsPosMesh = new MeshInstance3D
+			StandardMaterial3D markerMat = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0, 1, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			};
+			hitMarkerMeshRed.MaterialOverride = markerMat;
+		}
+		else
 		{
-			Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
-			MaterialOverride = new StandardMaterial3D
+			StandardMaterial3D markerMat = new StandardMaterial3D
 			{
 				AlbedoColor = new Color(1, 0, 0),
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
-			},
-			Visible = true
-		};
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			};
+			hitMarkerMeshRed.MaterialOverride = markerMat;
+		}
+		debugNode.AddChild(hitMarkerMeshRed);
+
+		if (currentTeam == CurrentTeam.Red)
+		{
+			soundsPosMesh = new MeshInstance3D
+			{
+				Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = new Color(1, 0, 0),
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				},
+				Visible = true
+			};
+		}
+		else
+		{
+			soundsPosMesh = new MeshInstance3D
+			{
+				Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = new Color(0, 1, 0),
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				},
+				Visible = false
+			};
+		}
+		
 		teamSoundNode.AddChild(soundsPosMesh);
 	}
 
@@ -280,13 +322,13 @@ public partial class Enemy : CharacterBody3D
 		float maxAngleDegrees = 45f;
 		float maxAngleRadians = Mathf.DegToRad(maxAngleDegrees);
 		int rayCount = 18;
-		float rayDistance = 30f;
+		float rayDistance = 60f;
 		List<Vector3> hitPoints = new List<Vector3>();
 		var spaceState = GetWorld3D().DirectSpaceState;
 
 
-		rayMeshRed.ClearSurfaces();
-		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		// rayMeshRed.ClearSurfaces();
+		// rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
 		for (int i = 0; i < rayCount; i++)
 		{
 			float angle = Mathf.Lerp(-maxAngleRadians, maxAngleRadians, (float)i / (float)(rayCount - 1));
@@ -300,8 +342,8 @@ public partial class Enemy : CharacterBody3D
 			var result = spaceState.IntersectRay(query);
 
 
-			rayMeshRed.SurfaceAddVertex(origin);
-			rayMeshRed.SurfaceAddVertex(end);
+			// rayMeshRed.SurfaceAddVertex(origin);
+			// rayMeshRed.SurfaceAddVertex(end);
 			
 
 			if (result.Count > 0)
@@ -312,7 +354,7 @@ public partial class Enemy : CharacterBody3D
 				}
 			}
 		}
-		rayMeshRed.SurfaceEnd();
+		// rayMeshRed.SurfaceEnd();
 
 		if (hitPoints.Count == 0)
 			return GlobalPosition;
@@ -365,13 +407,13 @@ public partial class Enemy : CharacterBody3D
 
 		if (closestPoint != GlobalPosition && closestPoint.IsFinite())
 		{
-			GD.Print("Setting cover point: ", closestPoint);
+			//GD.Print("Setting cover point: ", closestPoint);
 			navAgent.TargetPosition = closestPoint;
 			return closestPoint;
 		}
 		else
 		{
-			GD.Print("No valid cover point found, returning current position.");
+			//GD.Print("No valid cover point found, returning current position.");
 			return GlobalPosition;
 		}
 	}
@@ -536,8 +578,8 @@ public partial class Enemy : CharacterBody3D
 	public CharacterBody3D CanSeeOpponent()
 	{
 		closestOpponent = null;
-		// closestOpponentEyes = null;
-		// closestOpponentPos = Vector3.Zero;
+		closestOpponentEyes = null;
+		closestOpponentPos = Vector3.Zero;
 
 		if (isDespawning)
 			return null;
@@ -565,19 +607,25 @@ public partial class Enemy : CharacterBody3D
 
 				var result = spaceState.IntersectRay(query);
 
-				if (result.Count > 0 && result["collider"].Obj is Node collider && collider.IsInGroup(enemyTeam.ToString()))
+				if (result.Count > 0 && result.ContainsKey("collider"))
 				{
-					if (distance < closestDistance)
+					var colliderObj = result["collider"].Obj as Node;
+					if (colliderObj != null && (
+						colliderObj.IsInGroup(enemyTeam.ToString()) ||
+						colliderObj.GetParent()?.IsInGroup(enemyTeam.ToString()) == true))
 					{
-						closestDistance = distance;
-						closestOpponent = opponent;
-						closestOpponentPos = closestOpponent.GlobalPosition;
-						clearOpponentPosTimer.Start();
+						if (distance < closestDistance)
+						{
+							closestDistance = distance;
+							closestOpponent = opponent;
+							closestOpponentPos = closestOpponent.GlobalPosition;
+							closestOpponentEyes = closestOpponent.GetNodeOrNull<Node3D>("Rig/Skeleton3D/Eyes");
+							clearOpponentPosTimer.Start();
+						}
 					}
 				}
 			}
 		}
-		
 		return closestOpponent;
 	}
 
@@ -678,7 +726,7 @@ public partial class Enemy : CharacterBody3D
 		Vector3 right = GlobalTransform.Basis.X.Normalized();
 
 		Vector3 strafeDirection = rng.Randf() < 0.5f ? right : -right;
-		Vector3 strafeTarget = GlobalPosition + strafeDirection * rng.RandfRange(1f, 3f);
+		Vector3 strafeTarget = GlobalPosition + strafeDirection * rng.RandfRange(2.5f, 5f);
 
 		if (navMap!=null)
 		{
@@ -822,7 +870,14 @@ public partial class Enemy : CharacterBody3D
 		// Get the camera and direction from its forward (center of screen)
 		//Camera3D camera = PCamera.GetNode<Camera3D>("Camera3D");
 		Vector3 start = rayCast.GlobalPosition;
-		Vector3 baseDirection = (closestOpponentEyes.GlobalPosition - start).Normalized();
+		if (closestOpponent == null || !IsInstanceValid(closestOpponent))
+			return;
+
+		Node3D targetEyes = closestOpponent.GetNodeOrNull<Node3D>("Rig/Skeleton3D/Eyes");
+		if (targetEyes == null)
+			return;
+
+		Vector3 baseDirection = (targetEyes.GlobalPosition - start).Normalized();
 
 		// Simulate inaccuracy: pick a random direction within a cone
 		
@@ -841,7 +896,7 @@ public partial class Enemy : CharacterBody3D
 		Vector3 direction = (randomRotation * baseDirection).Normalized();
 
 		// Cast the ray
-		float rayLength = 1000f;
+		float rayLength = 200f;
 		Vector3 end = start + direction * rayLength;
 
 		// Optional: Physics raycast
@@ -849,12 +904,11 @@ public partial class Enemy : CharacterBody3D
 		var query = PhysicsRayQueryParameters3D.Create(start, end);
 		var result = spaceState.IntersectRay(query);
 
-		// Draw using ImmediateMesh
-		// rayMeshRed.ClearSurfaces();
-		// rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		// rayMeshRed.SurfaceAddVertex(start);
-		// rayMeshRed.SurfaceAddVertex(end);
-		// rayMeshRed.SurfaceEnd();
+		rayMeshRed.ClearSurfaces();
+		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		rayMeshRed.SurfaceAddVertex(start);
+		rayMeshRed.SurfaceAddVertex(end);
+		rayMeshRed.SurfaceEnd();
 
 		if (result.Count > 0)
 		{
@@ -896,7 +950,7 @@ public partial class Enemy : CharacterBody3D
 			teamSoundNode.AddChild(soundsPosMesh);
 		}
 		soundsPosMesh.GlobalTransform = new Transform3D(Basis.Identity, rayCast.GlobalPosition);
-		soundsPosMesh.Visible = true;
+		soundsPosMesh.Visible = false;
 		soundTimer.Start();
 	}
 
@@ -1005,6 +1059,14 @@ public partial class Enemy : CharacterBody3D
 		return isDead;
 	}
 
+	public void ExitTree()
+	{
+		//NavigationServer3D.MapChanged -= OnMapChanged;
+		shootTimer.Timeout -= Shoot;
+		soundTimer.Timeout -= RemoveSound;
+		//clearOpponentPosTimer.Timeout -= ClearOpponentData;
+	}
+
 	public void Respawn()
 	{
 		int targetIndex = (int)rng.RandfRange(0, 5);
@@ -1045,7 +1107,10 @@ public partial class Enemy : CharacterBody3D
 		isShooting = false;
 		shootTimer.Stop();
 		soundTimer.Stop();
+		hitMarkerMeshRed.Visible = false;
+		debugNode.RemoveChild(hitMarkerMeshRed);
 		RemoveSound();
+		ExitTree();
 		QueueFree();
 
 	}
