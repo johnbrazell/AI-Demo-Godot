@@ -124,7 +124,9 @@ public partial class Enemy : CharacterBody3D
 		clearOpponentPosTimer = GetNode<Timer>("ClearOpponentPosTimer");
 		clearOpponentPosTimer.Timeout += () =>
 		{
-			closestOpponentPos = closestOpponent.GlobalPosition;
+			if (closestOpponent != null)
+				closestOpponentPos = closestOpponent.GlobalPosition;
+
 			closestOpponent = null;
 			closestOpponentEyes = null;
 		};
@@ -269,6 +271,111 @@ public partial class Enemy : CharacterBody3D
 		return false;
 	}
 
+	public Vector3 SetCoverPos()
+	{
+		if (closestOpponentEyes == null || navMap == null) return GlobalPosition;
+
+		Vector3 origin = closestOpponentEyes.GlobalPosition;
+		Vector3 direction = (eyes.GlobalPosition - origin).Normalized();
+		float maxAngleDegrees = 45f;
+		float maxAngleRadians = Mathf.DegToRad(maxAngleDegrees);
+		int rayCount = 18;
+		float rayDistance = 30f;
+		List<Vector3> hitPoints = new List<Vector3>();
+		var spaceState = GetWorld3D().DirectSpaceState;
+
+
+		rayMeshRed.ClearSurfaces();
+		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		for (int i = 0; i < rayCount; i++)
+		{
+			float angle = Mathf.Lerp(-maxAngleRadians, maxAngleRadians, (float)i / (float)(rayCount - 1));
+			Basis rotation = new Basis(Vector3.Up, angle);
+			Vector3 rayDirection = (rotation * direction).Normalized();
+			Vector3 end = origin + rayDirection * rayDistance;
+
+			var query = PhysicsRayQueryParameters3D.Create(origin, end);
+			query.Exclude = new Godot.Collections.Array<Rid> { this.GetRid() };
+
+			var result = spaceState.IntersectRay(query);
+
+
+			rayMeshRed.SurfaceAddVertex(origin);
+			rayMeshRed.SurfaceAddVertex(end);
+			
+
+			if (result.Count > 0)
+			{
+				if (result["collider"].Obj is Node collider && collider.IsInGroup("Cover"))
+				{
+					hitPoints.Add((Vector3)result["position"]);
+				}
+			}
+		}
+		rayMeshRed.SurfaceEnd();
+
+		if (hitPoints.Count == 0)
+			return GlobalPosition;
+
+		Vector3 bestCoverPos = GlobalPosition;
+		float bestScore = float.NegativeInfinity;
+
+		foreach (Vector3 hitPoint in hitPoints)
+		{
+			// Too close = bad
+			float distanceFromSelf = GlobalPosition.DistanceTo(hitPoint);
+			if (distanceFromSelf < 2f) continue; // Skip too-close cover
+
+			// Prefer points that are between AI and opponent
+			Vector3 toOpponent = (closestOpponentEyes.GlobalPosition - GlobalPosition).Normalized();
+			Vector3 toCover = (hitPoint - GlobalPosition).Normalized();
+			float alignment = toOpponent.Dot(toCover); // Closer to -1 means cover is between you and them
+
+			// Bonus: Is this point hidden from the opponent?
+			bool isHidden = false;
+			var testQuery = PhysicsRayQueryParameters3D.Create(closestOpponentEyes.GlobalPosition, hitPoint);
+			testQuery.Exclude = new Godot.Collections.Array<Rid> { this.GetRid() };
+			var testResult = spaceState.IntersectRay(testQuery);
+			if (testResult.Count > 0)
+			{
+				Node c = testResult["collider"].Obj as Node;
+				if (c != null && c.IsInGroup("Cover"))
+					isHidden = true;
+			}
+
+			// Score it
+			float score = 0f;
+			score += -distanceFromSelf * 0.5f; // closer is better but not too close
+			score += alignment * 2.0f;         // -1 is good (between AI and opponent)
+			if (isHidden) score += 3.0f;       // hidden is best
+
+			if (score > bestScore)
+			{
+				bestScore = score;
+				bestCoverPos = hitPoint;
+			}
+		}
+
+		Vector3 directionAwayFromOpponent = (bestCoverPos - closestOpponentEyes.GlobalPosition).Normalized();
+		Vector3 coverOffset = directionAwayFromOpponent * 1.5f;
+		Vector3 finalCoverPos = bestCoverPos + coverOffset;
+
+		Vector3 closestPoint = NavigationServer3D.MapGetClosestPoint(navMap.GetNavigationMap(), finalCoverPos);
+		//GD.Print("Final cover point: ", closestPoint, " (Distance: ", GlobalPosition.DistanceTo(closestPoint), ")");
+
+		if (closestPoint != GlobalPosition && closestPoint.IsFinite())
+		{
+			GD.Print("Setting cover point: ", closestPoint);
+			navAgent.TargetPosition = closestPoint;
+			return closestPoint;
+		}
+		else
+		{
+			GD.Print("No valid cover point found, returning current position.");
+			return GlobalPosition;
+		}
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
 		// if (isDespawning || !GodotObject.IsInstanceValid(playerEyes))
@@ -301,6 +408,28 @@ public partial class Enemy : CharacterBody3D
 		// }
 		// else
 		// 	SetTargetNavPos();
+
+		if (closestOpponent != null)
+		{
+			if (closestOpponent is Player opponentPlayer)
+			{
+				if (opponentPlayer.isDead)
+				{
+					closestOpponent = null;
+					closestOpponentEyes = null;
+					closestOpponentPos = Vector3.Zero;
+				}
+			}
+			else if (closestOpponent is Enemy opponentAI)
+			{
+				if (opponentAI.isDead)
+				{
+					closestOpponent = null;
+					closestOpponentEyes = null;
+					closestOpponentPos = Vector3.Zero;
+				}
+			}
+		}
 
 		Vector3 velocity = Velocity;
 		velocity = HandleMovement(velocity);
@@ -549,7 +678,7 @@ public partial class Enemy : CharacterBody3D
 		Vector3 right = GlobalTransform.Basis.X.Normalized();
 
 		Vector3 strafeDirection = rng.Randf() < 0.5f ? right : -right;
-		Vector3 strafeTarget = GlobalPosition + strafeDirection * rng.RandfRange(0.75f, 2.5f);
+		Vector3 strafeTarget = GlobalPosition + strafeDirection * rng.RandfRange(1f, 3f);
 
 		if (navMap!=null)
 		{
@@ -721,11 +850,11 @@ public partial class Enemy : CharacterBody3D
 		var result = spaceState.IntersectRay(query);
 
 		// Draw using ImmediateMesh
-		rayMeshRed.ClearSurfaces();
-		rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
-		rayMeshRed.SurfaceAddVertex(start);
-		rayMeshRed.SurfaceAddVertex(end);
-		rayMeshRed.SurfaceEnd();
+		// rayMeshRed.ClearSurfaces();
+		// rayMeshRed.SurfaceBegin(Mesh.PrimitiveType.Lines);
+		// rayMeshRed.SurfaceAddVertex(start);
+		// rayMeshRed.SurfaceAddVertex(end);
+		// rayMeshRed.SurfaceEnd();
 
 		if (result.Count > 0)
 		{
@@ -830,15 +959,15 @@ public partial class Enemy : CharacterBody3D
 		isAiming = !isAiming;
 		if (isAiming)
 		{
-			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0.75f);
+			//cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0.75f);
 			Speed = 2f;
-			camera.Fov = 45f;
+			//camera.Fov = 45f;
 		}
 		else
 		{
-			cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
+			//cameraOrbit.Position = new Vector3(-0.5f, 1.75f, 0);
 			Speed = 5f;
-			camera.Fov = 70f;
+			//camera.Fov = 70f;
 		}
 	}
 
@@ -871,6 +1000,11 @@ public partial class Enemy : CharacterBody3D
 		}
 	}
 
+	public bool CheckSelfDead()
+	{
+		return isDead;
+	}
+
 	public void Respawn()
 	{
 		int targetIndex = (int)rng.RandfRange(0, 5);
@@ -894,7 +1028,7 @@ public partial class Enemy : CharacterBody3D
 		}
 
 		if (targetIndex >= teamSpawns.Count)
-				targetIndex = 0; // fallback
+			targetIndex = 0; // fallback
 
 		var spawnPoint = teamSpawns[targetIndex];
 		var spawnPoint3D = spawnPoint as Node3D;
