@@ -190,6 +190,9 @@ script = ExtResource("3_kn1gg")
 [sub_resource type="BTSequence" id="BTSequence_evrb1"]
 children = [SubResource("BTAction_cuodr"), SubResource("BTAction_xhtg8")]
 
+[sub_resource type="BTAlwaysSucceed" id="BTAlwaysSucceed_1atkw"]
+children = [SubResource("BTSequence_evrb1")]
+
 [sub_resource type="BTAction" id="BTAction_1r6vk"]
 script = ExtResource("1_easam")
 
@@ -202,10 +205,7 @@ duration = 4.0
 [sub_resource type="BTParallel" id="BTParallel_8221f"]
 num_successes_required = 2
 repeat = true
-children = [SubResource("BTInvert_6cpn1"), SubResource("BTAction_k4fpp"), SubResource("BTSequence_evrb1"), SubResource("BTAction_1r6vk"), SubResource("BTAction_8221f"), SubResource("BTWait_tdquu")]
-
-[sub_resource type="BTRepeatUntilSuccess" id="BTRepeatUntilSuccess_tdquu"]
-children = [SubResource("BTParallel_8221f")]
+children = [SubResource("BTInvert_6cpn1"), SubResource("BTAction_k4fpp"), SubResource("BTAlwaysSucceed_1atkw"), SubResource("BTAction_1r6vk"), SubResource("BTAction_8221f"), SubResource("BTWait_tdquu")]
 
 [sub_resource type="BTAction" id="BTAction_qi7mr"]
 script = ExtResource("7_cdarv")
@@ -214,7 +214,7 @@ script = ExtResource("7_cdarv")
 duration = 0.75
 
 [sub_resource type="BTSequence" id="BTSequence_tdquu"]
-children = [SubResource("BTRepeatUntilSuccess_tdquu"), SubResource("BTAction_qi7mr"), SubResource("BTWait_ymmpx")]
+children = [SubResource("BTParallel_8221f"), SubResource("BTAction_qi7mr"), SubResource("BTWait_ymmpx")]
 
 [sub_resource type="BTParallel" id="BTParallel_tdquu"]
 num_successes_required = 3
@@ -285,9 +285,6 @@ children = [SubResource("BTSequence_cqjs7"), SubResource("BTSequence_tytq2"), Su
 custom_name = "Seq - Engage"
 children = [SubResource("BTInvert_08mah"), SubResource("BTAction_6m1da"), SubResource("BTSequence_1atkw"), SubResource("BTProbabilitySelector_bo4x1")]
 
-[sub_resource type="BTAction" id="BTAction_ph1iy"]
-script = ExtResource("7_fhf5k")
-
 [sub_resource type="BTAction" id="BTAction_7jjxo"]
 script = ExtResource("1_x8lil")
 
@@ -300,14 +297,14 @@ script = ExtResource("9_cqjs7")
 [sub_resource type="BTAction" id="BTAction_3gdlw"]
 script = ExtResource("1_tdquu")
 
+[sub_resource type="BTInvert" id="BTInvert_1ohyh"]
+children = [SubResource("BTAction_3gdlw")]
+
 [sub_resource type="BTAction" id="BTAction_ymmpx"]
 script = ExtResource("1_jqpxn")
 
-[sub_resource type="BTSequence" id="BTSequence_54j2w"]
-children = [SubResource("BTAction_3gdlw"), SubResource("BTAction_ymmpx")]
-
-[sub_resource type="BTInvert" id="BTInvert_1ohyh"]
-children = [SubResource("BTSequence_54j2w")]
+[sub_resource type="BTInvert" id="BTInvert_54j2w"]
+children = [SubResource("BTAction_ymmpx")]
 
 [sub_resource type="BTAction" id="BTAction_vahif"]
 script = ExtResource("1_easam")
@@ -319,9 +316,9 @@ script = ExtResource("11_tytq2")
 script = ExtResource("3_easam")
 
 [sub_resource type="BTParallel" id="BTParallel_vahif"]
-num_successes_required = 2
+num_successes_required = 4
 repeat = true
-children = [SubResource("BTInvert_1ohyh"), SubResource("BTAction_vahif"), SubResource("BTAction_dcoc4"), SubResource("BTAction_gw4mo")]
+children = [SubResource("BTInvert_1ohyh"), SubResource("BTInvert_54j2w"), SubResource("BTAction_vahif"), SubResource("BTAction_dcoc4"), SubResource("BTAction_gw4mo")]
 
 [sub_resource type="BTAction" id="BTAction_u0swa"]
 script = ExtResource("11_hqsg7")
@@ -334,14 +331,14 @@ script = ExtResource("7_n8yiu")
 [sub_resource type="BTAction" id="BTAction_qw3a3"]
 script = ExtResource("1_tdquu")
 
-[sub_resource type="BTAction" id="BTAction_6cpn1"]
+[sub_resource type="BTInvert" id="BTInvert_mao85"]
+children = [SubResource("BTAction_qw3a3")]
+
+[sub_resource type="BTAction" id="BTAction_ph1iy"]
 script = ExtResource("1_jqpxn")
 
-[sub_resource type="BTSequence" id="BTSequence_0tm2e"]
-children = [SubResource("BTAction_qw3a3"), SubResource("BTAction_6cpn1")]
-
-[sub_resource type="BTInvert" id="BTInvert_mao85"]
-children = [SubResource("BTSequence_0tm2e")]
+[sub_resource type="BTInvert" id="BTInvert_7jjxo"]
+children = [SubResource("BTAction_ph1iy")]
 
 [sub_resource type="BTAction" id="BTAction_rbl2y"]
 script = ExtResource("1_easam")
@@ -353,9 +350,9 @@ script = ExtResource("2_t7qyv")
 script = ExtResource("3_easam")
 
 [sub_resource type="BTParallel" id="BTParallel_5it5j"]
-num_successes_required = 2
+num_successes_required = 3
 repeat = true
-children = [SubResource("BTInvert_mao85"), SubResource("BTAction_rbl2y"), SubResource("BTAction_3kugv"), SubResource("BTAction_7yj0k")]
+children = [SubResource("BTInvert_mao85"), SubResource("BTInvert_7jjxo"), SubResource("BTAction_rbl2y"), SubResource("BTAction_3kugv"), SubResource("BTAction_7yj0k")]
 
 [sub_resource type="BTWait" id="BTWait_xs21a"]
 
@@ -373,7 +370,7 @@ children = [SubResource("BTAction_c8dtk"), SubResource("BTParallel_vahif"), SubR
 
 [sub_resource type="BTSequence" id="BTSequence_lvi8c"]
 custom_name = "Seq - Investigate Last Target Pos"
-children = [SubResource("BTAction_ph1iy"), SubResource("BTAction_7jjxo"), SubResource("BTAction_sk100"), SubResource("BTSequence_c8dtk")]
+children = [SubResource("BTAction_7jjxo"), SubResource("BTAction_sk100"), SubResource("BTSequence_c8dtk")]
 
 [sub_resource type="BTAction" id="BTAction_ltuf3"]
 script = ExtResource("1_lvi8c")
@@ -390,14 +387,14 @@ script = ExtResource("3_uk8qy")
 [sub_resource type="BTAction" id="BTAction_wn5b6"]
 script = ExtResource("1_tdquu")
 
+[sub_resource type="BTInvert" id="BTInvert_3rly2"]
+children = [SubResource("BTAction_wn5b6")]
+
 [sub_resource type="BTAction" id="BTAction_h6mlf"]
 script = ExtResource("7_fhf5k")
 
-[sub_resource type="BTSequence" id="BTSequence_tge4w"]
-children = [SubResource("BTAction_wn5b6"), SubResource("BTAction_h6mlf")]
-
-[sub_resource type="BTInvert" id="BTInvert_3rly2"]
-children = [SubResource("BTSequence_tge4w")]
+[sub_resource type="BTInvert" id="BTInvert_tge4w"]
+children = [SubResource("BTAction_h6mlf")]
 
 [sub_resource type="BTAction" id="BTAction_n8yiu"]
 script = ExtResource("1_easam")
@@ -409,9 +406,9 @@ script = ExtResource("4_krk53")
 script = ExtResource("3_easam")
 
 [sub_resource type="BTParallel" id="BTParallel_jqpxn"]
-num_successes_required = 2
+num_successes_required = 4
 repeat = true
-children = [SubResource("BTInvert_3rly2"), SubResource("BTAction_n8yiu"), SubResource("BTAction_uk8qy"), SubResource("BTAction_k5iio")]
+children = [SubResource("BTInvert_3rly2"), SubResource("BTInvert_tge4w"), SubResource("BTAction_n8yiu"), SubResource("BTAction_uk8qy"), SubResource("BTAction_k5iio")]
 
 [sub_resource type="BTAction" id="BTAction_cdarv"]
 script = ExtResource("7_uk8qy")
@@ -424,14 +421,14 @@ script = ExtResource("7_n8yiu")
 [sub_resource type="BTAction" id="BTAction_nrkpg"]
 script = ExtResource("1_tdquu")
 
+[sub_resource type="BTInvert" id="BTInvert_4d3bv"]
+children = [SubResource("BTAction_nrkpg")]
+
 [sub_resource type="BTAction" id="BTAction_n1j3l"]
 script = ExtResource("7_fhf5k")
 
-[sub_resource type="BTSequence" id="BTSequence_esx4o"]
-children = [SubResource("BTAction_nrkpg"), SubResource("BTAction_n1j3l")]
-
-[sub_resource type="BTInvert" id="BTInvert_4d3bv"]
-children = [SubResource("BTSequence_esx4o")]
+[sub_resource type="BTInvert" id="BTInvert_esx4o"]
+children = [SubResource("BTAction_n1j3l")]
 
 [sub_resource type="BTAction" id="BTAction_kn1gg"]
 script = ExtResource("1_easam")
@@ -443,9 +440,9 @@ script = ExtResource("2_t7qyv")
 script = ExtResource("3_easam")
 
 [sub_resource type="BTParallel" id="BTParallel_hqsg7"]
-num_successes_required = 2
+num_successes_required = 4
 repeat = true
-children = [SubResource("BTInvert_4d3bv"), SubResource("BTAction_kn1gg"), SubResource("BTAction_fhf5k"), SubResource("BTAction_cqjs7")]
+children = [SubResource("BTInvert_4d3bv"), SubResource("BTInvert_esx4o"), SubResource("BTAction_kn1gg"), SubResource("BTAction_fhf5k"), SubResource("BTAction_cqjs7")]
 
 [sub_resource type="BTWait" id="BTWait_tytq2"]
 
@@ -477,17 +474,20 @@ script = ExtResource("8_j61d0")
 [sub_resource type="BTAction" id="BTAction_csxkg"]
 script = ExtResource("1_tdquu")
 
-[sub_resource type="BTAction" id="BTAction_qt3fc"]
-script = ExtResource("1_lvi8c")
+[sub_resource type="BTInvert" id="BTInvert_38a4b"]
+children = [SubResource("BTAction_csxkg")]
 
 [sub_resource type="BTAction" id="BTAction_277j8"]
 script = ExtResource("7_fhf5k")
 
-[sub_resource type="BTSequence" id="BTSequence_ecnha"]
-children = [SubResource("BTAction_csxkg"), SubResource("BTAction_qt3fc"), SubResource("BTAction_277j8")]
+[sub_resource type="BTInvert" id="BTInvert_qt3fc"]
+children = [SubResource("BTAction_277j8")]
 
-[sub_resource type="BTInvert" id="BTInvert_38a4b"]
-children = [SubResource("BTSequence_ecnha")]
+[sub_resource type="BTAction" id="BTAction_qt3fc"]
+script = ExtResource("1_lvi8c")
+
+[sub_resource type="BTInvert" id="BTInvert_277j8"]
+children = [SubResource("BTAction_qt3fc")]
 
 [sub_resource type="BTAction" id="BTAction_o27a3"]
 script = ExtResource("1_easam")
@@ -499,9 +499,9 @@ script = ExtResource("2_t7qyv")
 script = ExtResource("3_easam")
 
 [sub_resource type="BTParallel" id="BTParallel_updst"]
-num_successes_required = 2
+num_successes_required = 5
 repeat = true
-children = [SubResource("BTInvert_38a4b"), SubResource("BTAction_o27a3"), SubResource("BTAction_easam"), SubResource("BTAction_t7qyv")]
+children = [SubResource("BTInvert_38a4b"), SubResource("BTInvert_qt3fc"), SubResource("BTInvert_277j8"), SubResource("BTAction_o27a3"), SubResource("BTAction_easam"), SubResource("BTAction_t7qyv")]
 
 [sub_resource type="BTWait" id="BTWait_ud6ol"]
 duration = 2.0

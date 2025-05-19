@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Godot.Collections;
 using System.Diagnostics;
 using System.Reflection.Metadata;
 
@@ -88,11 +89,12 @@ public partial class Enemy : CharacterBody3D
 	private float stuckTimer = 0f;
 	private int stuckState = 0; // 0 = not stuck, 1 = jump attempted
 	private float stuckThreshold = 0.2f; // how little distance = stuck
-	private float stuckCooldown = 0.5f;
+	private float stuckCooldown = 0.25f;
 
 	public CharacterBody3D closestOpponent = null;
 	public Node3D closestOpponentEyes = null;
 	public Vector3 closestOpponentPos = Vector3.Zero;
+	public Vector3 closestOpponentLastPos = Vector3.Zero;
 	public Timer clearOpponentPosTimer;
 
 	public override void _Ready()
@@ -125,10 +127,14 @@ public partial class Enemy : CharacterBody3D
 		clearOpponentPosTimer.Timeout += () =>
 		{
 			if (closestOpponent != null)
+			{
 				closestOpponentPos = closestOpponent.GlobalPosition;
-
+				closestOpponentEyes = closestOpponent.GetNodeOrNull<Node3D>("Rig/Skeleton3D/Eyes");
+			}
+			closestOpponentLastPos = closestOpponentPos;
 			closestOpponent = null;
 			closestOpponentEyes = null;
+			closestOpponentPos = Vector3.Zero;
 		};
 
 		currentTeam = GetGroups().Contains("Red") ? currentTeam = CurrentTeam.Red : currentTeam = CurrentTeam.Blue;
@@ -261,7 +267,7 @@ public partial class Enemy : CharacterBody3D
 		// }
 		// else
 		// {
-			navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 60);
+		navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 60);
 		// }
 		// {
 		// 	var players = GetTree().GetNodesInGroup("Blue");
@@ -460,6 +466,7 @@ public partial class Enemy : CharacterBody3D
 					closestOpponent = null;
 					closestOpponentEyes = null;
 					closestOpponentPos = Vector3.Zero;
+					closestOpponentLastPos = Vector3.Zero;
 				}
 			}
 			else if (closestOpponent is Enemy opponentAI)
@@ -469,6 +476,7 @@ public partial class Enemy : CharacterBody3D
 					closestOpponent = null;
 					closestOpponentEyes = null;
 					closestOpponentPos = Vector3.Zero;
+					closestOpponentLastPos = Vector3.Zero;
 				}
 			}
 		}
@@ -486,6 +494,7 @@ public partial class Enemy : CharacterBody3D
 		stuckTimer += delta;
 		if (stuckTimer >= stuckCooldown)
 		{
+			//GD.Print("Checking for stuck state...");
 			float distMoved = GlobalPosition.DistanceTo(lastCheckedPosition);
 			bool isNearTarget = TargetPosReached();
 
@@ -496,10 +505,15 @@ public partial class Enemy : CharacterBody3D
 					Jump();
 					stuckState = 1;
 				}
-				else
+				else if (stuckState == 1 && IsOnFloor())
 				{
 					Vector3 reroute = GetRandomPoint(navAgent.TargetPosition, 10);
 					navAgent.TargetPosition = reroute.IsFinite() ? reroute : GlobalPosition;
+					stuckState = 2;
+				}
+				else if (stuckState == 2 && IsOnFloor())
+				{
+					navAgent.TargetPosition = GetRandomPoint(GlobalPosition, 10);
 					stuckState = 0;
 				}
 			}
@@ -578,8 +592,8 @@ public partial class Enemy : CharacterBody3D
 	public CharacterBody3D CanSeeOpponent()
 	{
 		closestOpponent = null;
-		closestOpponentEyes = null;
-		closestOpponentPos = Vector3.Zero;
+		// closestOpponentEyes = null;
+		// closestOpponentPos = Vector3.Zero;
 
 		if (isDespawning)
 			return null;
@@ -619,6 +633,7 @@ public partial class Enemy : CharacterBody3D
 							closestDistance = distance;
 							closestOpponent = opponent;
 							closestOpponentPos = closestOpponent.GlobalPosition;
+							closestOpponentLastPos = closestOpponentPos;
 							closestOpponentEyes = closestOpponent.GetNodeOrNull<Node3D>("Rig/Skeleton3D/Eyes");
 							clearOpponentPosTimer.Start();
 						}
@@ -631,15 +646,15 @@ public partial class Enemy : CharacterBody3D
 
 	public void SetLastOpponentNavPos()
 	{
-		if (closestOpponentPos != Vector3.Zero)
+		if (closestOpponentLastPos != Vector3.Zero)
 		{
-			navAgent.TargetPosition = closestOpponentPos;
+			navAgent.TargetPosition = closestOpponentLastPos;
 		}
 	}
 
 	public void RemoveLastOpponentPos()
 	{
-		closestOpponentPos = Vector3.Zero;
+		closestOpponentLastPos = Vector3.Zero;
 	}
 
 
@@ -693,28 +708,32 @@ public partial class Enemy : CharacterBody3D
 		if (navAgent == null)
 			return velocity;
 
-		Vector3 direction = (navAgent.GetNextPathPosition() - GlobalPosition).Normalized();
-		// Vector3 desiredVelocity = new Vector3(direction.X, Velocity.Y, direction.Z) * Speed;
-		// velocity = desiredVelocity;
-
-		if (!direction.IsZeroApprox())
+		// NEW: Check if the agent is still moving along the path
+		if (!navAgent.IsNavigationFinished())
 		{
-			velocity.X = direction.X * Speed;
-			velocity.Z = direction.Z * Speed;
-			isMoving = true;
+			Vector3 direction = (navAgent.GetNextPathPosition() - GlobalPosition).Normalized();
 
-			if (new Vector2(velocity.X, velocity.Z).Length() > 4f)
-				currentAnim = CurrentAnim.SprintA;
-			else
-				currentAnim = CurrentAnim.WalkA;
+			if (!direction.IsZeroApprox())
+			{
+				velocity.X = direction.X * Speed;
+				velocity.Z = direction.Z * Speed;
+				isMoving = true;
+
+				if (new Vector2(velocity.X, velocity.Z).Length() > 4f)
+					currentAnim = CurrentAnim.SprintA;
+				else
+					currentAnim = CurrentAnim.WalkA;
+			}
 		}
 		else
 		{
+			// Stop movement smoothly
 			velocity.X = Mathf.MoveToward(Velocity.X, 0, Speed);
 			velocity.Z = Mathf.MoveToward(Velocity.Z, 0, Speed);
 			currentAnim = CurrentAnim.PistolIdleA;
 			isMoving = false;
 		}
+
 		return velocity;
 	}
 
@@ -760,18 +779,43 @@ public partial class Enemy : CharacterBody3D
 				).Normalized() * (float)(GD.Randf() * radius);
 			Vector3 randomPoint = center + randomOffset;
 
-			Vector3 closestPoint = center;
-			closestPoint = NavigationServer3D.MapGetClosestPoint(navMapRid, randomPoint);
+			Vector3 closestPoint = NavigationServer3D.MapGetClosestPoint(navMapRid, randomPoint);
 			closestPoint.X = Mathf.Clamp(closestPoint.X, -30, 10);
 			closestPoint.Z = Mathf.Clamp(closestPoint.Z, -10, 47); // in bounds of map 
 			closestPoint.Y = Mathf.Clamp(closestPoint.Y, -2.5f, 10);
-			if (closestPoint != center && closestPoint.IsFinite())
+
+
+			if (closestPoint != center && closestPoint.IsFinite()) //IsPathToTargetValid(center, closestPoint) && 
 			{
 				return closestPoint;
 			}
 				
 		}
 		return center;
+	}
+
+	public bool IsPathToTargetValid(Vector3 start, Vector3 end)
+	{
+		if (navMap == null)
+			return false;
+
+		var navMapRid = navMap.GetNavigationMap();
+		if (NavigationServer3D.MapGetIterationId(navMapRid) == 0)
+		{
+			GD.Print("Navigation map not yet baked/ready.");
+			return false;
+		}
+
+		// Use MapGetPath to get the path between start and end
+		var path = NavigationServer3D.MapGetPath(
+			navMapRid,
+			start,
+			end,
+			true, // optimize
+			0     // navigation_layers (default)
+		);
+
+		return path.Length > 1; // More than one point means path is valid
 	}
 
 	public void HandleAnimations()
@@ -1063,7 +1107,7 @@ public partial class Enemy : CharacterBody3D
 	{
 		//NavigationServer3D.MapChanged -= OnMapChanged;
 		shootTimer.Timeout -= Shoot;
-		soundTimer.Timeout -= RemoveSound;
+		//soundTimer.Timeout -= RemoveSound;
 		//clearOpponentPosTimer.Timeout -= ClearOpponentData;
 	}
 
@@ -1112,7 +1156,5 @@ public partial class Enemy : CharacterBody3D
 		RemoveSound();
 		ExitTree();
 		QueueFree();
-
 	}
-	
 }

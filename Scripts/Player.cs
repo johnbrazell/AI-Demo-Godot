@@ -116,11 +116,22 @@ public partial class Player : CharacterBody3D
 		rayMesh = new ImmediateMesh();
 
 		debugLineMesh.Mesh = rayMesh;
-		debugLineMesh.MaterialOverride = new StandardMaterial3D
+		if (enemyTeam == CurrentTeam.Red)
 		{
-			AlbedoColor = new Color(0, 1, 0),
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
-		};
+			debugLineMesh.MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(1, 0, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			};
+		}
+		else
+		{
+			debugLineMesh.MaterialOverride = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0, 1, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+			};
+		}
 
 		debugNode.AddChild(debugLineMesh);
 		debugLineMesh.GlobalTransform = Transform3D.Identity;
@@ -130,25 +141,52 @@ public partial class Player : CharacterBody3D
 			Mesh = new BoxMesh { Size = new Vector3(0.1f, 0.1f, 0.1f) },
 			Visible = false
 		};
-		StandardMaterial3D markerMat = new StandardMaterial3D
+		if (currentTeam == CurrentTeam.Red)
 		{
-			AlbedoColor = new Color(1, 0, 0),
-			ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-		};
-		hitMarkerMesh.MaterialOverride = markerMat;
+			StandardMaterial3D markerMat = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(0, 1, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			};
+			hitMarkerMesh.MaterialOverride = markerMat;
+		}
+		else
+		{
+			StandardMaterial3D markerMat = new StandardMaterial3D
+			{
+				AlbedoColor = new Color(1, 0, 0),
+				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+			};
+			hitMarkerMesh.MaterialOverride = markerMat;
+		}
 		debugNode.AddChild(hitMarkerMesh);
 
-		soundsPosMesh = new MeshInstance3D
+		if (currentTeam == CurrentTeam.Red)
 		{
-			Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
-			MaterialOverride = new StandardMaterial3D
+			soundsPosMesh = new MeshInstance3D
 			{
-				AlbedoColor = new Color(0, 0, 1),
-				ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
-			},
-			Visible = false
-		};
-		soundNode.AddChild(soundsPosMesh);
+				Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = new Color(1, 0, 0),
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				},
+				Visible = true
+			};
+		}
+		else
+		{
+			soundsPosMesh = new MeshInstance3D
+			{
+				Mesh = new SphereMesh { Radius = 0.1f, Height = 0.1f },
+				MaterialOverride = new StandardMaterial3D
+				{
+					AlbedoColor = new Color(0, 1, 0),
+					ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded
+				},
+				Visible = false
+			};
+		}
 	}
 
 	public void ResetCollision()
@@ -547,7 +585,7 @@ public partial class Player : CharacterBody3D
 		Input.MouseMode = Input.MouseModeEnum.Captured;
 		GetViewport().SetInputAsHandled();
 		spawningPlayer.ReacquireInput();
-		ExitTree();
+		//ExitTree();
 		QueueFree();
 	}
 

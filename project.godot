@@ -19,7 +19,6 @@ config/icon="res://icon.svg"
 
 PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 Shaker="*res://addons/shaker/src/Shaker.gd"
-Panku="*res://addons/panku_console/console.tscn"
 
 [dialogic]
 
@@ -55,7 +54,7 @@ project/assembly_name="AI Demo Godot"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/globalize-plugins/plugin.cfg", "res://addons/panku_console/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/shaker/plugin.cfg", "res://addons/wigglebone/plugin.cfg")
+enabled=PackedStringArray("res://addons/globalize-plugins/plugin.cfg", "res://addons/phantom_camera/plugin.cfg", "res://addons/shaker/plugin.cfg", "res://addons/wigglebone/plugin.cfg")
 
 [filesystem]
 
